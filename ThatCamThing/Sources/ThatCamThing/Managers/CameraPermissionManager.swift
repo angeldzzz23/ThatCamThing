@@ -6,14 +6,14 @@
 //
 
 
-class CameraPermissionManager {
+public class CameraPermissionManager {
     private weak var cameraManager: CameraManager?
     
-    init(cameraManager: CameraManager) {
+    public  init(cameraManager: CameraManager) {
         self.cameraManager = cameraManager
     }
     
-    func requestPermissions() {
+    public  func requestPermissions() {
         requestCameraPermission()
         requestPhotoLibraryPermission()
     }

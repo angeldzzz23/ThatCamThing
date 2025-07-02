@@ -9,7 +9,7 @@ import SwiftUI
 
 // TODO: user an alternative to .onchange to add support for lower versions of iOS 17
 // TODO: user an alternative to .onchange to add support for lower versions of iOS 17
-struct CameraContainerView<Overlay: CameraOverlayView>: View {
+public struct CameraContainerView<Overlay: CameraOverlayView>: View {
     
     @StateObject private var cameraManager: CameraManager
     
@@ -21,7 +21,7 @@ struct CameraContainerView<Overlay: CameraOverlayView>: View {
     // Store the overlay creation closure
     private let createOverlay: (CameraManager) -> Overlay
     
-    init(
+    public init(
         attributes: CameraManagerAttributes = .init(),
         onImageCaptured: ((UIImage) -> Void)? = nil,
         onStateChanged: ((CameraManager) -> Void)? = nil,
@@ -53,7 +53,7 @@ struct CameraContainerView<Overlay: CameraOverlayView>: View {
         self.createOverlay = createOverlay
     }
     
-    var body: some View {
+    public var body: some View {
         ZStack {
             CameraPreview(session: cameraManager.session)
                 .ignoresSafeArea()
@@ -99,8 +99,8 @@ struct CameraContainerView<Overlay: CameraOverlayView>: View {
     }
 }
 
-extension CameraContainerView {
-    func setOverlayScreen<T: CameraOverlayView>(_ overlayType: T.Type) -> CameraContainerView<T>
+public extension CameraContainerView {
+    public func setOverlayScreen<T: CameraOverlayView>(_ overlayType: T.Type) -> CameraContainerView<T>
      where T.Control == CameraManager {
          return CameraContainerView<T>(
              attributes: defaultAttributes,
@@ -114,7 +114,7 @@ extension CameraContainerView {
      }
     
     /// Set a callback for when an image is captured
-    func onImageCaptured(_ callback: @escaping (UIImage) -> Void) -> CameraContainerView<Overlay> {
+    public func onImageCaptured(_ callback: @escaping (UIImage) -> Void) -> CameraContainerView<Overlay> {
         CameraContainerView<Overlay>(
             attributes: defaultAttributes,
             onImageCaptured: callback,
@@ -125,7 +125,7 @@ extension CameraContainerView {
     }
     
     /// Set a callback for when camera state changes (e.g., session starts)
-    func onCameraStateChanged(_ callback: @escaping (CameraManager) -> Void) -> CameraContainerView<Overlay> {
+    public func onCameraStateChanged(_ callback: @escaping (CameraManager) -> Void) -> CameraContainerView<Overlay> {
         CameraContainerView<Overlay>(
             attributes: defaultAttributes,
             onImageCaptured: onImageCapturedCallback,
@@ -136,7 +136,7 @@ extension CameraContainerView {
     }
     
     /// Set a custom error handler
-    func onError(_ handler: @escaping (CameraError) -> Void) -> CameraContainerView<Overlay> {
+    public  func onError(_ handler: @escaping (CameraError) -> Void) -> CameraContainerView<Overlay> {
         CameraContainerView<Overlay>(
             attributes: defaultAttributes,
             onImageCaptured: onImageCapturedCallback,
@@ -147,7 +147,7 @@ extension CameraContainerView {
     }
     
     /// Configure initial camera settings
-    func cameraConfiguration(_ configuration: @escaping (CameraManager) -> Void) -> CameraContainerView<Overlay> {
+    public func cameraConfiguration(_ configuration: @escaping (CameraManager) -> Void) -> CameraContainerView<Overlay> {
         let newView = CameraContainerView<Overlay>(
             attributes: defaultAttributes,
             onImageCaptured: onImageCapturedCallback,
@@ -163,5 +163,5 @@ extension CameraContainerView {
 }
 
 // MARK: - Convenience typealias for default usage
-typealias DefaultCameraContainerView = CameraContainerView<DefaultCameraOverlay<CameraManager>>
+public typealias DefaultCameraContainerView = CameraContainerView<DefaultCameraOverlay<CameraManager>>
 

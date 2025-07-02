@@ -9,7 +9,7 @@ import Foundation
 
 import SwiftUI
 
-struct DefaultErrorScreen: ErrorScreenView {
+public struct DefaultErrorScreen: ErrorScreenView {
     let error: Error
     let onRetry: () -> Void
     

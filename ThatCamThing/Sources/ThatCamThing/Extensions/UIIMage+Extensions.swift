@@ -10,7 +10,7 @@ import SwiftUI
 
 // MARK: - UI Extensions
 
-extension UIImage {
+public extension UIImage {
     func mirrored() -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { context in

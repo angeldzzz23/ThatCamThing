@@ -15,7 +15,7 @@ import Photos
 
 // MARK: - Photo Capture Management
 
-class PhotoCaptureManager: NSObject {
+public class PhotoCaptureManager: NSObject {
     private weak var cameraManager: CameraManager?
     var photoOutput: AVCapturePhotoOutput?
     private let imageProcessingQueue = DispatchQueue(label: "com.camera.imageProcessing", qos: .userInitiated)
@@ -26,7 +26,7 @@ class PhotoCaptureManager: NSObject {
         super.init()
     }
     
-    func setupPhotoOutput(session: AVCaptureSession) -> Bool {
+    public  func setupPhotoOutput(session: AVCaptureSession) -> Bool {
         photoOutput = AVCapturePhotoOutput()
         
         guard let photoOutput = photoOutput else { return false }
@@ -39,7 +39,7 @@ class PhotoCaptureManager: NSObject {
         return false
     }
     
-    func capturePhoto(flashMode: CameraFlashMode) {
+    public   func capturePhoto(flashMode: CameraFlashMode) {
         guard let photoOutput = photoOutput,
               let cameraManager = cameraManager,
               !cameraManager.isPaused else { return }

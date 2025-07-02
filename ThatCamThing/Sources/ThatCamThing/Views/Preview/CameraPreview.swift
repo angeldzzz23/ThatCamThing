@@ -13,7 +13,7 @@ import Photos
 
 // MARK: - Camera Preview UIViewRepresentable
 
-struct CameraPreview: UIViewRepresentable {
+public struct CameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
     
     func makeUIView(context: Context) -> VideoPreviewView {

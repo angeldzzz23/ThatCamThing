@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-protocol ErrorScreenView: View {
+public protocol ErrorScreenView: View {
     var error: Error { get }
     var onRetry: () -> Void { get }
     

@@ -7,12 +7,14 @@
 
 import SwiftUI
 
-struct PracticeButton: View {
+public struct PracticeButton: View {
     
-    var angel = "Hello"
+    public var angel = "Hello"
+    public init() {}
+    
+    public var body: some View {
+        
 
-    
-    var body: some View {
         Button("Button") {
             Text("Hello, World!")
         }

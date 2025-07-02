@@ -8,12 +8,12 @@
 import SwiftUI
 import AVKit
 
-struct DefaultCameraOverlay<Control: CameraControl>: CameraOverlayView {
+public struct DefaultCameraOverlay<Control: CameraControl>: CameraOverlayView {
     
     @ObservedObject var cameraControl: Control
 
     
-    init(cameraControl: Control) {
+    public init(cameraControl: Control) {
         self.cameraControl = cameraControl
     }
     

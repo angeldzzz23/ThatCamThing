@@ -12,7 +12,7 @@ import SwiftUI
 import Photos
 
 
-class VideoPreviewView: UIView {
+public class VideoPreviewView: UIView {
     var session: AVCaptureSession? {
         didSet {
             guard let session = session else { return }

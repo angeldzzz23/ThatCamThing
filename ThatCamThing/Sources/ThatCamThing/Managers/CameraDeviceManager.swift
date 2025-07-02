@@ -8,14 +8,14 @@
 import AVKit
 import SwiftUI
 
-class CameraDeviceManager {
+public class CameraDeviceManager {
     
     private let session: AVCaptureSession
     private weak var cameraManager: CameraManager?
     
     var videoDeviceInput: AVCaptureDeviceInput?
     
-    init(session: AVCaptureSession, cameraManager: CameraManager) {
+    public init(session: AVCaptureSession, cameraManager: CameraManager) {
         self.session = session
         self.cameraManager = cameraManager
     }

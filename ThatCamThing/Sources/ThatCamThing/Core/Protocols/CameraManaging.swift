@@ -6,13 +6,13 @@
 //
 
 
-protocol CameraManaging: ObservableObject {
-    var isSessionRunning: Bool { get }
-    var isPaused: Bool { get }
-    var isShowingAlert: Bool { get }
-    var alertMessage: String { get }
+public protocol CameraManaging: ObservableObject {
+    public var isSessionRunning: Bool { get }
+    public  var isPaused: Bool { get }
+    public  var isShowingAlert: Bool { get }
+    public  var alertMessage: String { get }
 
-    func requestPermissions()
-    func togglePause()
-    func capturePhoto()
+    public   func requestPermissions()
+    public   func togglePause()
+    public   func capturePhoto()
 }

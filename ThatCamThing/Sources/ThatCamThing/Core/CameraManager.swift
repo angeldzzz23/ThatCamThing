@@ -11,7 +11,7 @@ import SwiftUI
 import AVKit
 
 // MARK: - Main Camera Manager
-class CameraManager: NSObject, CameraManaging {
+public class CameraManager: NSObject, CameraManaging {
     
     // MARK: - Published Properties
     @Published var attributes: CameraManagerAttributes = .init() {
@@ -34,11 +34,11 @@ class CameraManager: NSObject, CameraManaging {
     let session = AVCaptureSession()
     
     // MARK: - Managers
-    lazy var deviceManager = CameraDeviceManager(session: session, cameraManager: self)
-    lazy var sessionManager = CameraSessionManager(session: session, cameraManager: self)
-    lazy var permissionManager = CameraPermissionManager(cameraManager: self)
-    lazy var photoCaptureManager = PhotoCaptureManager(cameraManager: self)
-    lazy var configurationManager = CameraConfigurationManager(cameraManager: self)
+    public lazy var deviceManager = CameraDeviceManager(session: session, cameraManager: self)
+    public lazy var sessionManager = CameraSessionManager(session: session, cameraManager: self)
+    public  lazy var permissionManager = CameraPermissionManager(cameraManager: self)
+    public   lazy var photoCaptureManager = PhotoCaptureManager(cameraManager: self)
+    public lazy var configurationManager = CameraConfigurationManager(cameraManager: self)
     
     // MARK: - Initialization
     

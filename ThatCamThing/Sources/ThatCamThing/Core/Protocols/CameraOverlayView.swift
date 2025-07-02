@@ -6,7 +6,7 @@
 //
 
 
-protocol CameraOverlayView: View {
+public protocol CameraOverlayView: View {
     associatedtype Control: CameraControl
     var cameraControl: Control { get }
     

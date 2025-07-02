@@ -37,22 +37,22 @@ public enum CameraHDRMode: CaseIterable {
     case auto
 }
 
-struct CameraMedia {
-    let image: UIImage
-    let metadata: [String: Any]?
-    let timestamp: Date
+public struct CameraMedia {
+    public let image: UIImage
+    public let metadata: [String: Any]?
+    public  let timestamp: Date
 }
 
-struct CameraManagerAttributes {
-      var capturedMedia: CameraMedia?
-      var error: CameraError?
-      var outputType = CameraOutputType.photo
-      var cameraPosition = CameraPosition.back
-      var zoomFactor: CGFloat = 1.0
-      var frameRate: Int32 = 30
-      var flashMode = CameraFlashMode.off
-      var resolution = AVCaptureSession.Preset.hd1920x1080
-      var mirrorOutput = false
+public struct CameraManagerAttributes {
+     public var capturedMedia: CameraMedia?
+    public var error: CameraError?
+    public var outputType = CameraOutputType.photo
+    public  var cameraPosition = CameraPosition.back
+    public  var zoomFactor: CGFloat = 1.0
+    public  var frameRate: Int32 = 30
+    public  var flashMode = CameraFlashMode.off
+    public var resolution = AVCaptureSession.Preset.hd1920x1080
+    public   var mirrorOutput = false
     
     
 // TODO: 

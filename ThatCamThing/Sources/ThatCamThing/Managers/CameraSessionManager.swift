@@ -7,17 +7,17 @@
 
 import Foundation
 
-class CameraSessionManager {
+public class CameraSessionManager {
     
     private let session: AVCaptureSession
     private weak var cameraManager: CameraManager?
     
-    init(session: AVCaptureSession, cameraManager: CameraManager) {
+    public init(session: AVCaptureSession, cameraManager: CameraManager) {
         self.session = session
         self.cameraManager = cameraManager
     }
     
-    func setupSessionObservers() {
+    public func setupSessionObservers() {
         let startNotification: NSNotification.Name
         let stopNotification: NSNotification.Name
         
@@ -46,7 +46,7 @@ class CameraSessionManager {
         }
     }
     
-    func updateResolution(_ resolution: AVCaptureSession.Preset) {
+    public  func updateResolution(_ resolution: AVCaptureSession.Preset) {
         DispatchQueue.global(qos: .userInitiated).async {
             self.session.beginConfiguration()
             self.session.sessionPreset = resolution
@@ -54,7 +54,7 @@ class CameraSessionManager {
         }
     }
     
-    func startSession() {
+    public  func startSession() {
         guard !session.isRunning else { return }
         session.startRunning()
         
@@ -63,7 +63,7 @@ class CameraSessionManager {
         }
     }
     
-    func pauseSession() {
+    public  func pauseSession() {
         guard let cameraManager = cameraManager,
               cameraManager.isSessionRunning && !cameraManager.isPaused else { return }
         
@@ -82,7 +82,7 @@ class CameraSessionManager {
         }
     }
     
-    func resumeSession() {
+    public  func resumeSession() {
         guard let cameraManager = cameraManager,
               cameraManager.isPaused else { return }
         
