@@ -8,9 +8,14 @@
 import SwiftUI
 
 struct PracticeButton: View {
+    
+    var angel = "Hello"
+
+    
     var body: some View {
         Button("Button") {
-        Text("Hello, World!")
+            Text("Hello, World!")
+        }
     }
 }
 
