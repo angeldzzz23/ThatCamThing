@@ -441,7 +441,8 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     
 }
 
-//
+// MARK: conforming to AVCapturePhotoCaptureDelegate
+// This is where we process the image
 extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: (any Error)?) {
