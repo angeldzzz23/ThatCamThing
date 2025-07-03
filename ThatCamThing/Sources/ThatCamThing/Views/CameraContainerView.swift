@@ -50,15 +50,15 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
             }
         }
         .onAppear(perform: checkPermissionsAndUpdateState)
-        .onDisappear {
-            // Close the gate and stop the camera when the view disappears.
-            camera.stopCamera()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-            // When going to the background, immediately close the gate and stop the camera.
-            
-            camera.stopCamera()
-        }
+//        .onDisappear {
+//            // Close the gate and stop the camera when the view disappears.
+////            camera.stopCamera()
+//        }
+//        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
+//            // When going to the background, immediately close the gate and stop the camera.
+//            
+//            camera.stopCamera()
+//        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             // When returning, re-check permissions before opening the gate.
             checkPermissionsAndUpdateState()

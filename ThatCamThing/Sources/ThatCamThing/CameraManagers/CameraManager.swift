@@ -56,9 +56,10 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 }
             }
         case .denied:
+            self.showAlert = true
+            self.attributes.error = .cameraPermissionsNotGranted
             DispatchQueue.main.async {
-                self.showAlert = true
-                self.attributes.error = .cameraPermissionsNotGranted
+                
             }
             return
         default:
