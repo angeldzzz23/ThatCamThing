@@ -444,23 +444,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
     
-    private func saveImageToPhotoLibrary(_ image: UIImage) {
-        PHPhotoLibrary.requestAuthorization { status in
-            if status == .authorized {
-                PHPhotoLibrary.shared().performChanges({
-                    PHAssetChangeRequest.creationRequestForAsset(from: image)
-                }) { success, error in
-                    DispatchQueue.main.async {
-                        if success {
-                            print("Photo saved successfully")
-                        } else if let error = error {
-                            print("Error saving photo: \(error.localizedDescription)")
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
@@ -485,6 +468,5 @@ extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
         )
         attributes.capturedMedia = cameraMedia
         
-        saveImageToPhotoLibrary(image)
     }
 }
