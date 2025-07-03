@@ -226,6 +226,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
     
+    
     public func switchLensType() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
@@ -340,6 +341,8 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     public func setZoom(_ factor: CGFloat) {
+        
+        
         sessionQueue.async { [weak self] in
             guard let self = self, let device = self.currentInput?.device else { return }
             

@@ -7,9 +7,9 @@
 
 import Foundation
 import SwiftUI
-import ThatCamThing
+
 
 public protocol CameraOverlay: View {
-    var camera: CameraManager { get }
+    var cameraManager: CameraManager { get }
 }
 

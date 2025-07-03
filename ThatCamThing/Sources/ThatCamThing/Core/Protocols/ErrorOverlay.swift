@@ -8,5 +8,5 @@
 import Foundation
 
 public protocol ErrorOverlay: View {
-    var camera: CameraManager { get }
+    var cameraManager: CameraManager { get }
 }
