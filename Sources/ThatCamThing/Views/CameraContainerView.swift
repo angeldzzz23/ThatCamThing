@@ -16,13 +16,13 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
     @StateObject private var camera = CameraManager()
  
     private let overlay: (CameraManager) -> Overlay
-    private let errorOverlay: (CameraManager) -> ErrorOverlay
+    private let errorOverlay: (CameraError) -> ErrorOverlay
     private var onImageCapturedAction: ((UIImage) -> Void)?
 
     // This initializer is fileprivate to ensure it's only used by our extension methods.
     fileprivate init(
         overlay: @escaping (CameraManager) -> Overlay,
-        errorOverlay: @escaping (CameraManager) -> ErrorOverlay,
+        errorOverlay: @escaping (CameraError) -> ErrorOverlay,
         onImageCaptured: ((UIImage) -> Void)? = nil
     ) {
         self.overlay = overlay
@@ -43,7 +43,10 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
             overlay(camera)
             
             if camera.containsErrors {
-                errorOverlay(camera)
+                // Pass the camera error to the error overlay
+                if let cameraError = camera.cameraErrors {
+                    errorOverlay(cameraError)
+                }
             }
             
         }
@@ -61,11 +64,23 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
     }
 }
 
+public struct EmptyErrorOverlay: View {
+    public let camera: CameraError
+    
+    public init(camera: CameraError) {
+        self.camera = camera
+    }
+    
+    public var body: some View {
+        EmptyView()
+    }
+}
+
 // Public initializer for creating a CameraView without any overlays.
-extension CameraView where Overlay == EmptyCameraOverlay, ErrorOverlay == EmptyView {
+extension CameraView where Overlay == EmptyCameraOverlay, ErrorOverlay == EmptyErrorOverlay {
     /// Initializes a CameraView without any custom overlays.
     public init() {
-        self.init(overlay: { EmptyCameraOverlay(camera: $0) }, errorOverlay: { _ in EmptyView() }, onImageCaptured: nil)
+        self.init(overlay: { EmptyCameraOverlay(camera: $0) }, errorOverlay: { EmptyErrorOverlay(camera: $0) }, onImageCaptured: nil)
     }
 }
 
@@ -97,10 +112,10 @@ extension CameraView {
     
     /**
      Sets a custom error screen for the camera view.
-     - parameter content: A closure that returns the error view. It receives a `CameraManager` instance.
+     - parameter content: A closure that returns the error view. It receives a `CameraError` instance.
      - returns: A new `CameraView` with the specified error screen.
      */
-    public func setErrorScreen<NewErrorOverlay: View>(_ content: @escaping (CameraManager) -> NewErrorOverlay) -> CameraView<Overlay, NewErrorOverlay> {
+    public func setErrorScreen<NewErrorOverlay: View>(_ content: @escaping (CameraError) -> NewErrorOverlay) -> CameraView<Overlay, NewErrorOverlay> {
         CameraView<Overlay, NewErrorOverlay>(
             overlay: self.overlay,
             errorOverlay: content,
