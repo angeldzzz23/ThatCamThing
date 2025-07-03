@@ -17,7 +17,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     public var session = AVCaptureSession()
     public var alert = false
     public var output = AVCapturePhotoOutput()
-    public var preview: AVCaptureVideoPreviewLayer!
+    public var preview: AVCaptureVideoPreviewLayer
     public var showAlert = false
     
     @Published public var attributes = CameraManagerAttributes()
@@ -35,6 +35,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     public override init() {
+        self.preview = AVCaptureVideoPreviewLayer()
         super.init()
     }
     
