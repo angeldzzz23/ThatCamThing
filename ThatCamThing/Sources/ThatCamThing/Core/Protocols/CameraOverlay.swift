@@ -16,6 +16,9 @@ import SwiftUI
 /// Conformers can use the passed-in `CameraManager` to respond to capture events,
 /// update UI based on camera state, or trigger camera actions.
 public protocol CameraOverlay: View {
+    /// Creates a new overlay view using the provided camera manager.
+    ///
+    /// - Parameter camera: The camera manager controlling the camera session and state.
     init(camera: CameraManager)
 }
 
