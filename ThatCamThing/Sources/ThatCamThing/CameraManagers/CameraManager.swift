@@ -20,7 +20,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     public var preview: AVCaptureVideoPreviewLayer
     
     @Published public var cameraErrors: CameraError? = nil
-    @Published public var showAlert = false
+    @Published public var containsErrors = false
     @Published public var attributes = CameraManagerAttributes()
     
     private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
@@ -43,18 +43,18 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                     if status {
                         self.setUp()
                     } else {
-                        self.showAlert = true
+                        self.containsErrors = true
                         self.cameraErrors = .cameraPermissionsNotGranted
                     }
                 }
             }
         case .denied, .restricted:
             print("Denied")
-            self.showAlert = true
+            self.containsErrors = true
             self.cameraErrors = .cameraPermissionsNotGranted
             return
         default:
-            self.showAlert = true
+            self.containsErrors = true
             self.cameraErrors = .cameraPermissionsNotGranted
             return
         }

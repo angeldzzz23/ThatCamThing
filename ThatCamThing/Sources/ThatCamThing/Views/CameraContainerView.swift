@@ -33,7 +33,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
     public var body: some View {
         ZStack {
             
-            if !camera.showAlert {
+            if !camera.containsErrors {
                 CameraPreview(camera: camera)
                     .ignoresSafeArea(.all)
                 
@@ -46,7 +46,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
             overlay(camera)
             
             // Show error overlay if needed.
-            if camera.showAlert {
+            if camera.containsErrors {
                 errorOverlay(camera)
             }
         }
