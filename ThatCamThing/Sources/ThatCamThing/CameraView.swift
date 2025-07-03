@@ -79,6 +79,7 @@ public struct CameraManagerAttributes {
     public var resolution = AVCaptureSession.Preset.hd1920x1080
     public var mirrorOutput = false
     public var lensType = CameraLensType.wide
+    public var isPaused = false
 }
 
 // MARK: - Camera Manager
@@ -206,6 +207,11 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     public func takePicture() {
+        guard session.isRunning else {
+            print("⚠️ Attempted to take picture while session is not running.")
+            return
+        }
+
         let settings = AVCapturePhotoSettings()
         
         if currentInput?.device.hasFlash == true {
@@ -345,6 +351,33 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         return AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: position) != nil
     }
     
+    public func pauseCamera() {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            if self.session.isRunning {
+                self.session.stopRunning()
+                DispatchQueue.main.async {
+                    self.attributes.isPaused = true
+                    print("✅ Camera session paused.")
+                }
+            }
+        }
+    }
+    
+    public func resumeCamera() {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            // Check isRunning instead of isPaused to avoid race conditions.
+            if !self.session.isRunning {
+                self.session.startRunning()
+                DispatchQueue.main.async {
+                    self.attributes.isPaused = false
+                    print("✅ Camera session resumed.")
+                }
+            }
+        }
+    }
+    
     public nonisolated func stopCamera() {
         sessionQueue.async { [weak self] in
             if self?.session.isRunning == true {
@@ -368,7 +401,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         case .auto:
             attributes.flashMode = .off
         }
-    } 
+    }
     
     public func setZoom(_ factor: CGFloat) {
         sessionQueue.async { [weak self] in
