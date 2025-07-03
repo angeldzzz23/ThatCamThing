@@ -18,7 +18,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     public var alert = false
     public var output = AVCapturePhotoOutput()
     public var preview: AVCaptureVideoPreviewLayer
-    public var showAlert = false
+    @Published public var showAlert = false
     
     @Published public var attributes = CameraManagerAttributes()
     
@@ -39,7 +39,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         super.init()
     }
     
-    @MainActor
     public func checkPermissions() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
@@ -47,27 +46,29 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             return
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { status in
-                if status {
-                    self.setUp()
-                } else {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    if status {
+                        self.setUp()
+                    } else {
+                        self.showAlert = true
                         self.attributes.error = .cameraPermissionsNotGranted
                     }
                 }
             }
-        case .denied:
+        case .denied, .restricted:
+            print("Denied")
             self.showAlert = true
             self.attributes.error = .cameraPermissionsNotGranted
-            DispatchQueue.main.async {
-                
-            }
             return
         default:
+            self.showAlert = true
+            self.attributes.error = .cameraPermissionsNotGranted
             return
         }
     }
     
     func setUp() {
+        
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
@@ -464,7 +465,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
 
 extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
     
-    @MainActor
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: (any Error)?) {
         
         guard let imageData = photo.fileDataRepresentation() else {
