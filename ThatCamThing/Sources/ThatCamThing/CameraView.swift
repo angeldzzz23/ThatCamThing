@@ -39,6 +39,29 @@ public enum CameraHDRMode: CaseIterable {
     case auto
 }
 
+public enum CameraLensType: CaseIterable {
+    case wide
+    case ultraWide
+    
+    public var deviceType: AVCaptureDevice.DeviceType {
+        switch self {
+        case .wide:
+            return .builtInWideAngleCamera
+        case .ultraWide:
+            return .builtInUltraWideCamera
+        }
+    }
+    
+    public var displayName: String {
+        switch self {
+        case .wide:
+            return "Wide"
+        case .ultraWide:
+            return "Ultra Wide"
+        }
+    }
+}
+
 public struct CameraMedia {
     public let image: UIImage
     public let metadata: [String: Any]?
@@ -55,6 +78,7 @@ public struct CameraManagerAttributes {
     public var flashMode = CameraFlashMode.off
     public var resolution = AVCaptureSession.Preset.hd1920x1080
     public var mirrorOutput = false
+    public var lensType = CameraLensType.wide
 }
 
 // MARK: - Camera Manager
@@ -65,9 +89,10 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     public var output = AVCapturePhotoOutput()
     public var preview: AVCaptureVideoPreviewLayer!
     public var showAlert = false
-    // MARK: - Attributes
+    
     @Published public var attributes = CameraManagerAttributes()
     
+    private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
     private var currentInput: AVCaptureDeviceInput?
     
     public var flashMode: CameraFlashMode {
@@ -111,46 +136,62 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     func setUp() {
-        do {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
             self.session.beginConfiguration()
-            
-            self.session.sessionPreset = attributes.resolution
-            
-            // Get camera device based on attributes
-            let position: AVCaptureDevice.Position = attributes.cameraPosition == .back ? .back : .front
-            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
-                attributes.error = .cannotSetupInput
-                return
-            }
+            defer { self.session.commitConfiguration() }
             
             do {
-                try configureFrameRate(device: device, frameRate: attributes.frameRate)
-            } catch {
-                print("Error configuring frame rate: \(error.localizedDescription)")
-            }
-            
-            // Create input
-            let input = try AVCaptureDeviceInput(device: device)
-            
-            // Check if we can add input and output
-            if self.session.canAddInput(input) && self.session.canAddOutput(self.output) {
-                self.session.addInput(input)
-                self.session.addOutput(self.output)
-                self.currentInput = input
+                self.session.sessionPreset = self.attributes.resolution
                 
-                // Enable high resolution capture on the output
-                if self.output.isHighResolutionCaptureEnabled != true {
-                    self.output.isHighResolutionCaptureEnabled = true
+                let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
+                let deviceType = self.attributes.lensType.deviceType
+                
+                guard let device = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
+                    if self.attributes.lensType == .ultraWide {
+                        print("⚠️ Ultra wide camera not available, falling back to wide angle")
+                        self.attributes.lensType = .wide
+                        guard let fallbackDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
+                            self.attributes.error = .cannotSetupInput
+                            return
+                        }
+                        try self.setupWithDevice(fallbackDevice)
+                        return
+                    } else {
+                        self.attributes.error = .cannotSetupInput
+                        return
+                    }
                 }
-            } else {
-                attributes.error = .cannotSetupOutput
+                
+                try self.setupWithDevice(device)
+                
+            } catch {
+                print("Error setting up camera: \(error.localizedDescription)")
+                self.attributes.error = .cannotSetupInput
             }
-            
-            self.session.commitConfiguration()
-            
+        }
+    }
+    
+    private func setupWithDevice(_ device: AVCaptureDevice) throws {
+        do {
+            try configureFrameRate(device: device, frameRate: attributes.frameRate)
         } catch {
-            print("Error setting up camera: \(error.localizedDescription)")
-            attributes.error = .cannotSetupInput
+            print("Error configuring frame rate: \(error.localizedDescription)")
+        }
+        
+        let input = try AVCaptureDeviceInput(device: device)
+        
+        if self.session.canAddInput(input) && self.session.canAddOutput(self.output) {
+            self.session.addInput(input)
+            self.session.addOutput(self.output)
+            self.currentInput = input
+            
+            if self.output.isHighResolutionCaptureEnabled != true {
+                self.output.isHighResolutionCaptureEnabled = true
+            }
+        } else {
+            attributes.error = .cannotSetupOutput
         }
     }
     
@@ -168,7 +209,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         }
         
-        // Check if high resolution is supported before setting
         if output.isHighResolutionCaptureEnabled {
             settings.isHighResolutionPhotoEnabled = true
         }
@@ -177,38 +217,115 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     public func switchCamera() {
-        session.beginConfiguration()
-        
-        // Remove current input
-        if let currentInput = currentInput {
-            session.removeInput(currentInput)
-        }
-        
-        attributes.cameraPosition = attributes.cameraPosition == .back ? .front : .back
-        let position: AVCaptureDevice.Position = attributes.cameraPosition == .back ? .back : .front
-        
-        // Get new device
-        guard let newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
-            session.commitConfiguration()
-            return
-        }
-        
-        do {
-            let newInput = try AVCaptureDeviceInput(device: newDevice)
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
             
-            if session.canAddInput(newInput) {
-                session.addInput(newInput)
-                currentInput = newInput
+            self.session.beginConfiguration()
+            defer { self.session.commitConfiguration() }
+            
+            if let currentInput = self.currentInput {
+                self.session.removeInput(currentInput)
             }
-        } catch {
-            print("Error switching camera: \(error.localizedDescription)")
+            
+            self.attributes.cameraPosition = self.attributes.cameraPosition == .back ? .front : .back
+            let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
+            let deviceType = self.attributes.lensType.deviceType
+            
+            guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
+                if self.attributes.lensType == .ultraWide {
+                    print("⚠️ Ultra wide camera not available for \(position == .back ? "back" : "front") camera, using wide angle")
+                    guard let fallbackDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
+                        return
+                    }
+                    
+                    do {
+                        let newInput = try AVCaptureDeviceInput(device: fallbackDevice)
+                        if self.session.canAddInput(newInput) {
+                            self.session.addInput(newInput)
+                            self.currentInput = newInput
+                            if position == .front {
+                                self.attributes.lensType = .wide
+                            }
+                        }
+                    } catch {
+                        print("Error switching camera: \(error.localizedDescription)")
+                    }
+                    return
+                }
+                return
+            }
+            
+            do {
+                let newInput = try AVCaptureDeviceInput(device: newDevice)
+                
+                if self.session.canAddInput(newInput) {
+                    self.session.addInput(newInput)
+                    self.currentInput = newInput
+                }
+            } catch {
+                print("Error switching camera: \(error.localizedDescription)")
+            }
         }
-        
-        session.commitConfiguration()
+    }
+    
+    public func switchLensType() {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            self.session.beginConfiguration()
+            defer { self.session.commitConfiguration() }
+            
+            if let currentInput = self.currentInput {
+                self.session.removeInput(currentInput)
+            }
+            
+            self.attributes.lensType = self.attributes.lensType == .wide ? .ultraWide : .wide
+            
+            let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
+            let deviceType = self.attributes.lensType.deviceType
+            
+            guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
+                print("⚠️ \(self.attributes.lensType.displayName) camera not available, reverting to previous lens")
+                self.attributes.lensType = self.attributes.lensType == .wide ? .ultraWide : .wide
+                
+                let fallbackDeviceType = self.attributes.lensType.deviceType
+                guard let fallbackDevice = AVCaptureDevice.default(fallbackDeviceType, for: .video, position: position) else {
+                    return
+                }
+                
+                do {
+                    let newInput = try AVCaptureDeviceInput(device: fallbackDevice)
+                    if self.session.canAddInput(newInput) {
+                        self.session.addInput(newInput)
+                        self.currentInput = newInput
+                    }
+                } catch {
+                    print("Error reverting camera: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            do {
+                let newInput = try AVCaptureDeviceInput(device: newDevice)
+                
+                if self.session.canAddInput(newInput) {
+                    self.session.addInput(newInput)
+                    self.currentInput = newInput
+                    print("✅ Switched to \(self.attributes.lensType.displayName) camera")
+                }
+            } catch {
+                print("Error switching lens: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    public func isUltraWideAvailable() -> Bool {
+        let position: AVCaptureDevice.Position = attributes.cameraPosition == .back ? .back : .front
+        return AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: position) != nil
     }
     
     public nonisolated func stopCamera() {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        sessionQueue.async { [weak self] in
             if self?.session.isRunning == true {
                 self?.session.stopRunning()
             }
@@ -216,7 +333,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     public func startCamera() {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        sessionQueue.async { [weak self] in
             self?.session.startRunning()
         }
     }
@@ -232,28 +349,33 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
     
+    
     public func setZoom(_ factor: CGFloat) {
-        guard let device = currentInput?.device else { return }
-        
-        do {
-            try device.lockForConfiguration()
-            let clampedFactor = min(max(factor, 1.0), device.activeFormat.videoMaxZoomFactor)
-            device.videoZoomFactor = clampedFactor
-            attributes.zoomFactor = clampedFactor
-            device.unlockForConfiguration()
-        } catch {
-            print("Error setting zoom: \(error.localizedDescription)")
+        sessionQueue.async { [weak self] in
+            guard let self = self, let device = self.currentInput?.device else { return }
+            
+            do {
+                try device.lockForConfiguration()
+                let clampedFactor = min(max(factor, 1.0), device.activeFormat.videoMaxZoomFactor)
+                device.videoZoomFactor = clampedFactor
+                self.attributes.zoomFactor = clampedFactor
+                device.unlockForConfiguration()
+            } catch {
+                print("Error setting zoom: \(error.localizedDescription)")
+            }
         }
     }
     
     public func setFrameRate(_ frameRate: Int32) {
-        guard let device = currentInput?.device else { return }
-        
-        do {
-            try configureFrameRate(device: device, frameRate: frameRate)
-            attributes.frameRate = frameRate
-        } catch {
-            print("Error setting frame rate: \(error.localizedDescription)")
+        sessionQueue.async { [weak self] in
+            guard let self = self, let device = self.currentInput?.device else { return }
+            
+            do {
+                try self.configureFrameRate(device: device, frameRate: frameRate)
+                self.attributes.frameRate = frameRate
+            } catch {
+                print("Error setting frame rate: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -261,42 +383,12 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
         
-        let targetFrameRate = frameRate
-        let formats = device.formats
-        var bestFormat: AVCaptureDevice.Format?
-        var bestFrameRateRange: AVFrameRateRange?
-        
-        print("🔍 Searching for format supporting \(targetFrameRate) fps...")
-        
-        // Find the best format that supports the target frame rate
-        for format in formats {
-            for range in format.videoSupportedFrameRateRanges {
-                if range.maxFrameRate >= Double(targetFrameRate) && range.minFrameRate <= Double(targetFrameRate) {
-                    let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-                    print("   Found format: \(dimensions.width)x\(dimensions.height) @ \(range.minFrameRate)-\(range.maxFrameRate) fps")
-                    
-                    if bestFormat == nil ||
-                       CMVideoFormatDescriptionGetDimensions(format.formatDescription).width >
-                       CMVideoFormatDescriptionGetDimensions(bestFormat!.formatDescription).width {
-                        bestFormat = format
-                        bestFrameRateRange = range
-                    }
-                }
-            }
-        }
-        
-        if let format = bestFormat, let range = bestFrameRateRange {
-            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-            print("✅ Selected format: \(dimensions.width)x\(dimensions.height) @ \(range.minFrameRate)-\(range.maxFrameRate) fps")
-            
-            device.activeFormat = format
-            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(targetFrameRate))
-            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(targetFrameRate))
-            
-            print("✅ Frame rate set to \(targetFrameRate) fps")
+        if let range = device.activeFormat.videoSupportedFrameRateRanges.first(where: { $0.maxFrameRate >= Double(frameRate) }) {
+            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
+            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
+            print("✅ Frame rate set to \(frameRate) fps.")
         } else {
-            print("❌ No format supports \(targetFrameRate) fps")
-            handleFrameRateFallback(device: device, targetFrameRate: targetFrameRate, formats: formats)
+            print("❌ Desired frame rate \(frameRate) is not supported by the active format.")
         }
     }
     
@@ -312,8 +404,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         }
         
-        // Find closest supported frame rate
-        var closestFrameRate: Double = 30.0 // Default fallback
+        var closestFrameRate: Double = 30.0
         var minDifference = Double.infinity
         
         for range in allRanges {
@@ -328,8 +419,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         print("🔄 Using closest supported frame rate: \(closestFrameRate) fps")
         attributes.frameRate = Int32(closestFrameRate)
     }
-    
-    // MARK: - AVCapturePhotoCaptureDelegate
     
     private func saveImageToPhotoLibrary(_ image: UIImage) {
         PHPhotoLibrary.requestAuthorization { status in
