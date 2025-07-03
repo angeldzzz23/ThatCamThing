@@ -57,15 +57,9 @@ public enum CameraLensType: CaseIterable, Sendable {
     }
 }
 
-public struct CameraMedia {
-    public let image: UIImage
-    public let metadata: [String: Any]?
-    public let timestamp: Date
-}
 
-// TODO: remove errors from here and capture media
+
 public struct CameraManagerAttributes {
-    public var capturedMedia: CameraMedia?
     public var outputType = CameraOutputType.photo
     public var cameraPosition = CameraPosition.back
     public var zoomFactor: CGFloat = 1.0

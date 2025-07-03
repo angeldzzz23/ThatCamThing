@@ -51,7 +51,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
             }
         }
         .onAppear(perform: checkPermissionsAndUpdateState)
-        .onChange(of: camera.attributes.capturedMedia?.image) { oldValue, newValue in
+        .onChange(of: camera.capturedMedia?.image) { oldValue, newValue in
             if let newValue {
                 onImageCapturedAction?(newValue)
             }

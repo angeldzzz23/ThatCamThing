@@ -22,6 +22,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     @Published public var cameraErrors: CameraError? = nil
     @Published public var containsErrors = false
     @Published public var attributes = CameraManagerAttributes()
+    @Published public var capturedMedia: CameraMedia? = nil
     
     private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
     private var currentInput: AVCaptureDeviceInput?
@@ -461,7 +462,7 @@ extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
             metadata: metadata,
             timestamp: Date()
         )
-        attributes.capturedMedia = cameraMedia
+        capturedMedia = cameraMedia
         
     }
 }
