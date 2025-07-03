@@ -8,6 +8,16 @@
 import SwiftUI
 
 public protocol CameraOverlay: View {
-    var cameraManager: CameraManager { get }
+    init(camera: CameraManager)
 }
 
+//MARK: Creates an EmptyCameraOverlay
+public struct EmptyCameraOverlay: CameraOverlay {
+    public init(camera: CameraManager) {
+        // Empty initializer - we don't need to store the camera manager
+    }
+    
+    public var body: some View {
+        EmptyView()
+    }
+}

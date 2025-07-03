@@ -11,7 +11,7 @@ import ThatCamThing
 
 // The container view. It manages the camera session and preview.
 // Overlays are now configured via the .setOverlayScreen and .setErrorScreen modifiers.
-public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
+public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
     
     @StateObject private var camera = CameraManager()
  
@@ -38,17 +38,14 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
                     .ignoresSafeArea(.all)
                 
             } else {
-                // Provide a black background when the camera is not active.
                 Color.black.ignoresSafeArea(.all)
             }
-            
-            // The custom overlay is always visible.
             overlay(camera)
             
-            // Show error overlay if needed.
             if camera.containsErrors {
                 errorOverlay(camera)
             }
+            
         }
         .onAppear(perform: checkPermissionsAndUpdateState)
         .onChange(of: camera.capturedMedia?.image) { oldValue, newValue in
@@ -56,6 +53,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
                 onImageCapturedAction?(newValue)
             }
         }
+       
     }
     
     private func checkPermissionsAndUpdateState() {
@@ -64,10 +62,10 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
 }
 
 // Public initializer for creating a CameraView without any overlays.
-extension CameraView where Overlay == EmptyView, ErrorOverlay == EmptyView {
+extension CameraView where Overlay == EmptyCameraOverlay, ErrorOverlay == EmptyView {
     /// Initializes a CameraView without any custom overlays.
     public init() {
-        self.init(overlay: { _ in EmptyView() }, errorOverlay: { _ in EmptyView() }, onImageCaptured: nil)
+        self.init(overlay: { EmptyCameraOverlay(camera: $0) }, errorOverlay: { _ in EmptyView() }, onImageCaptured: nil)
     }
 }
 
@@ -89,7 +87,7 @@ extension CameraView {
      - parameter content: A closure that returns the overlay view. It receives a `CameraManager` instance to control the camera.
      - returns: A new `CameraView` with the specified overlay.
      */
-    public func setOverlayScreen<NewOverlay: View>(_ content: @escaping (CameraManager) -> NewOverlay) -> CameraView<NewOverlay, ErrorOverlay> {
+    public func setOverlayScreen<NewOverlay: CameraOverlay>(_ content: @escaping (CameraManager) -> NewOverlay) -> CameraView<NewOverlay, ErrorOverlay> {
         CameraView<NewOverlay, ErrorOverlay>(
             overlay: content,
             errorOverlay: self.errorOverlay,
@@ -110,5 +108,3 @@ extension CameraView {
         )
     }
 }
-
-
