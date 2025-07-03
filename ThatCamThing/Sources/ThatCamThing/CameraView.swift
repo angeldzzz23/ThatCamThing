@@ -39,22 +39,22 @@ public enum CameraHDRMode: CaseIterable {
     case auto
 }
 
-struct CameraMedia {
-    let image: UIImage
-    let metadata: [String: Any]?
-    let timestamp: Date
+public struct CameraMedia {
+    public let image: UIImage
+    public let metadata: [String: Any]?
+    public let timestamp: Date
 }
 
 public struct CameraManagerAttributes {
-    var capturedMedia: CameraMedia?
-    var error: CameraError?
-    var outputType = CameraOutputType.photo
-    var cameraPosition = CameraPosition.back
-    var zoomFactor: CGFloat = 1.0
-    var frameRate: Int32 = 60
-    var flashMode = CameraFlashMode.off
-    var resolution = AVCaptureSession.Preset.hd1920x1080
-    var mirrorOutput = false
+    public var capturedMedia: CameraMedia?
+    public var error: CameraError?
+    public var outputType = CameraOutputType.photo
+    public var cameraPosition = CameraPosition.back
+    public var zoomFactor: CGFloat = 1.0
+    public var frameRate: Int32 = 30
+    public var flashMode = CameraFlashMode.off
+    public var resolution = AVCaptureSession.Preset.hd1920x1080
+    public var mirrorOutput = false
 }
 
 // MARK: - Camera Manager
@@ -65,7 +65,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     public var output = AVCapturePhotoOutput()
     public var preview: AVCaptureVideoPreviewLayer!
     public var showAlert = false
-    
+    // MARK: - Attributes
     @Published public var attributes = CameraManagerAttributes()
     
     private var currentInput: AVCaptureDeviceInput?
@@ -121,6 +121,12 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
                 attributes.error = .cannotSetupInput
                 return
+            }
+            
+            do {
+                try configureFrameRate(device: device, frameRate: attributes.frameRate)
+            } catch {
+                print("Error configuring frame rate: \(error.localizedDescription)")
             }
             
             // Create input
@@ -238,6 +244,89 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         } catch {
             print("Error setting zoom: \(error.localizedDescription)")
         }
+    }
+    
+    public func setFrameRate(_ frameRate: Int32) {
+        guard let device = currentInput?.device else { return }
+        
+        do {
+            try configureFrameRate(device: device, frameRate: frameRate)
+            attributes.frameRate = frameRate
+        } catch {
+            print("Error setting frame rate: \(error.localizedDescription)")
+        }
+    }
+    
+    private func configureFrameRate(device: AVCaptureDevice, frameRate: Int32) throws {
+        try device.lockForConfiguration()
+        defer { device.unlockForConfiguration() }
+        
+        let targetFrameRate = frameRate
+        let formats = device.formats
+        var bestFormat: AVCaptureDevice.Format?
+        var bestFrameRateRange: AVFrameRateRange?
+        
+        print("🔍 Searching for format supporting \(targetFrameRate) fps...")
+        
+        // Find the best format that supports the target frame rate
+        for format in formats {
+            for range in format.videoSupportedFrameRateRanges {
+                if range.maxFrameRate >= Double(targetFrameRate) && range.minFrameRate <= Double(targetFrameRate) {
+                    let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                    print("   Found format: \(dimensions.width)x\(dimensions.height) @ \(range.minFrameRate)-\(range.maxFrameRate) fps")
+                    
+                    if bestFormat == nil ||
+                       CMVideoFormatDescriptionGetDimensions(format.formatDescription).width >
+                       CMVideoFormatDescriptionGetDimensions(bestFormat!.formatDescription).width {
+                        bestFormat = format
+                        bestFrameRateRange = range
+                    }
+                }
+            }
+        }
+        
+        if let format = bestFormat, let range = bestFrameRateRange {
+            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            print("✅ Selected format: \(dimensions.width)x\(dimensions.height) @ \(range.minFrameRate)-\(range.maxFrameRate) fps")
+            
+            device.activeFormat = format
+            device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(targetFrameRate))
+            device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(targetFrameRate))
+            
+            print("✅ Frame rate set to \(targetFrameRate) fps")
+        } else {
+            print("❌ No format supports \(targetFrameRate) fps")
+            handleFrameRateFallback(device: device, targetFrameRate: targetFrameRate, formats: formats)
+        }
+    }
+    
+    private func handleFrameRateFallback(device: AVCaptureDevice, targetFrameRate: Int32, formats: [AVCaptureDevice.Format]) {
+        print("📋 Available frame rates:")
+        var allRanges: [AVFrameRateRange] = []
+        
+        for format in formats {
+            for range in format.videoSupportedFrameRateRanges {
+                allRanges.append(range)
+                let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                print("   \(dimensions.width)x\(dimensions.height): \(range.minFrameRate)-\(range.maxFrameRate) fps")
+            }
+        }
+        
+        // Find closest supported frame rate
+        var closestFrameRate: Double = 30.0 // Default fallback
+        var minDifference = Double.infinity
+        
+        for range in allRanges {
+            let maxRate = range.maxFrameRate
+            let difference = abs(maxRate - Double(targetFrameRate))
+            if difference < minDifference {
+                minDifference = difference
+                closestFrameRate = maxRate
+            }
+        }
+        
+        print("🔄 Using closest supported frame rate: \(closestFrameRate) fps")
+        attributes.frameRate = Int32(closestFrameRate)
     }
     
     // MARK: - AVCapturePhotoCaptureDelegate
