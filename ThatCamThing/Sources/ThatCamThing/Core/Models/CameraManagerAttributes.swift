@@ -12,13 +12,6 @@ import PhotosUI
 import AVFoundation
 import AVKit
 
-// MARK: - Core Models and Enums
-
-// Camera Error
-public enum CameraError: Error {
-    case cameraPermissionsNotGranted
-    case cannotSetupInput, cannotSetupOutput
-}
 
 public enum CameraOutputType: CaseIterable {
     case photo
@@ -70,9 +63,10 @@ public struct CameraMedia {
     public let timestamp: Date
 }
 
+// TODO: remove errors from here and capture media
 public struct CameraManagerAttributes {
     public var capturedMedia: CameraMedia?
-    public var error: CameraError?
+//    public var error: CameraError?
     public var outputType = CameraOutputType.photo
     public var cameraPosition = CameraPosition.back
     public var zoomFactor: CGFloat = 1.0

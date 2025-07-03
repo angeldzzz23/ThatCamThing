@@ -19,20 +19,13 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     public var output = AVCapturePhotoOutput()
     public var preview: AVCaptureVideoPreviewLayer
     
-    @Published public var showAlert = false 
+    @Published public var cameraErrors: CameraError? = nil
+    @Published public var showAlert = false
     @Published public var attributes = CameraManagerAttributes()
     
     private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
     private var currentInput: AVCaptureDeviceInput?
     
-    public var flashMode: CameraFlashMode {
-        get { attributes.flashMode }
-        set { attributes.flashMode = newValue }
-    }
-    
-    private var isFrontCamera: Bool {
-        attributes.cameraPosition == .front
-    }
     
     public override init() {
         self.preview = AVCaptureVideoPreviewLayer()
@@ -51,18 +44,18 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                         self.setUp()
                     } else {
                         self.showAlert = true
-                        self.attributes.error = .cameraPermissionsNotGranted
+                        self.cameraErrors = .cameraPermissionsNotGranted
                     }
                 }
             }
         case .denied, .restricted:
             print("Denied")
             self.showAlert = true
-            self.attributes.error = .cameraPermissionsNotGranted
+            self.cameraErrors = .cameraPermissionsNotGranted
             return
         default:
             self.showAlert = true
-            self.attributes.error = .cameraPermissionsNotGranted
+            self.cameraErrors = .cameraPermissionsNotGranted
             return
         }
     }
@@ -89,7 +82,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                         }
                         guard let fallbackDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
                             DispatchQueue.main.async {
-                                self.attributes.error = .cannotSetupInput
+                                self.cameraErrors = .cannotSetupInput
                             }
                             return
                         }
@@ -97,7 +90,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                         return
                     } else {
                         DispatchQueue.main.async {
-                            self.attributes.error = .cannotSetupInput
+                            self.cameraErrors = .cannotSetupInput
                         }
                         return
                     }
@@ -108,7 +101,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             } catch {
                 print("Error setting up camera: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    self.attributes.error = .cannotSetupInput
+                    self.cameraErrors = .cannotSetupInput
                 }
             }
         }
@@ -138,7 +131,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         } else {
             DispatchQueue.main.async {
-                self.attributes.error = .cannotSetupOutput
+                self.cameraErrors = .cannotSetupOutput
             }
         }
     }
@@ -448,6 +441,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     
 }
 
+//
 extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: (any Error)?) {
@@ -470,5 +464,19 @@ extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
         )
         attributes.capturedMedia = cameraMedia
         
+    }
+}
+
+// MARK: properties
+
+extension CameraManager {
+    
+    public var flashMode: CameraFlashMode {
+        get { attributes.flashMode }
+        set { attributes.flashMode = newValue }
+    }
+    
+    private var isFrontCamera: Bool {
+        attributes.cameraPosition == .front
     }
 }
