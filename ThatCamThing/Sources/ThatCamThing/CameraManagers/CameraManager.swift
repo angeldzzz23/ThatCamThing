@@ -226,7 +226,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         }
     }
     
-    
     public func switchLensType() {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
