@@ -40,7 +40,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
                 // Provide a black background when the camera is not active.
                 Color.black.ignoresSafeArea(.all)
             }
-
+            
             // The custom overlay is always visible.
             overlay(camera)
             
@@ -52,7 +52,6 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
         .onAppear(perform: checkPermissionsAndUpdateState)
         .onDisappear {
             // Close the gate and stop the camera when the view disappears.
-            
             camera.stopCamera()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
@@ -72,11 +71,10 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
     }
     
     private func checkPermissionsAndUpdateState() {
-        // Defer the check to avoid watchdog timeouts and allow UI to settle.
+       
         DispatchQueue.main.async {
             camera.checkPermissions()
-            // The gate is opened only AFTER the check is complete.
-            // If showAlert becomes true, the preview will be hidden anyway.
+            
             
         }
     }
