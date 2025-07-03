@@ -5,82 +5,7 @@
 //  Created by angel zambrano on 7/2/25.
 //
 
-import Foundation
-import SwiftUI
-import PhotosUI
-import AVFoundation
-import AVKit
 
-// MARK: - Core Models and Enums
-
-public enum CameraError: Error {
-    case cameraPermissionsNotGranted
-    case cannotSetupInput, cannotSetupOutput
-}
-
-public enum CameraOutputType: CaseIterable {
-    case photo
-}
-
-public enum CameraPosition: CaseIterable, Sendable {
-    case back
-    case front
-}
-
-public enum CameraFlashMode: CaseIterable {
-    case off
-    case on
-    case auto
-}
-
-public enum CameraHDRMode: CaseIterable {
-    case off
-    case on
-    case auto
-}
-
-public enum CameraLensType: CaseIterable, Sendable {
-    case wide
-    case ultraWide
-    
-    public var deviceType: AVCaptureDevice.DeviceType {
-        switch self {
-        case .wide:
-            return .builtInWideAngleCamera
-        case .ultraWide:
-            return .builtInUltraWideCamera
-        }
-    }
-    
-    public var displayName: String {
-        switch self {
-        case .wide:
-            return "Wide"
-        case .ultraWide:
-            return "Ultra Wide"
-        }
-    }
-}
-
-public struct CameraMedia {
-    public let image: UIImage
-    public let metadata: [String: Any]?
-    public let timestamp: Date
-}
-
-public struct CameraManagerAttributes {
-    public var capturedMedia: CameraMedia?
-    public var error: CameraError?
-    public var outputType = CameraOutputType.photo
-    public var cameraPosition = CameraPosition.back
-    public var zoomFactor: CGFloat = 1.0
-    public var frameRate: Int32 = 30
-    public var flashMode = CameraFlashMode.off
-    public var resolution = AVCaptureSession.Preset.hd1920x1080
-    public var mirrorOutput = false
-    public var lensType = CameraLensType.wide
-    public var isPaused = false
-}
 
 // MARK: - Camera Manager
 
@@ -95,6 +20,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     
     private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
     private var currentInput: AVCaptureDeviceInput?
+    private var deviceFormats: [AVCaptureDevice.Format] = []
     
     public var flashMode: CameraFlashMode {
         get { attributes.flashMode }
@@ -195,6 +121,15 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             self.session.addInput(input)
             self.session.addOutput(self.output)
             self.currentInput = input
+            
+            // Cache the formats for the current device
+            self.deviceFormats = device.formats
+            
+            // Cache ultra-wide availability
+            let isUltraWideAvailable = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: device.position) != nil
+            DispatchQueue.main.async {
+                self.attributes.isUltraWideLensAvailable = isUltraWideAvailable
+            }
             
             if self.output.isHighResolutionCaptureEnabled != true {
                 self.output.isHighResolutionCaptureEnabled = true
@@ -347,6 +282,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     public func isUltraWideAvailable() -> Bool {
+        // This function is no longer needed by the view, but can be kept for other internal logic if necessary.
         let position: AVCaptureDevice.Position = attributes.cameraPosition == .back ? .back : .front
         return AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: position) != nil
     }
@@ -447,7 +383,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         
         print("🔍 Searching for format supporting \(frameRate) fps...")
         
-        for format in device.formats {
+        for format in self.deviceFormats { // Use the cached formats
             for range in format.videoSupportedFrameRateRanges {
                 if range.maxFrameRate >= Double(frameRate) && range.minFrameRate <= Double(frameRate) {
                     let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
@@ -474,7 +410,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             print("✅ Frame rate set to \(frameRate) fps")
         } else {
             print("❌ No format found that supports exactly \(frameRate) fps. Using fallback.")
-            handleFrameRateFallback(device: device, targetFrameRate: frameRate, formats: device.formats)
+            handleFrameRateFallback(device: device, targetFrameRate: frameRate, formats: self.deviceFormats) // Use cached formats
         }
     }
     
