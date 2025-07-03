@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+
 public protocol ErrorOverlay: View {
-    var cameraManager: CameraManager { get }
+    
 }
