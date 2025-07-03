@@ -9,14 +9,14 @@ import Foundation
 import SwiftUI
 import AVKit
 
-public struct CameraPreview: UIViewRepresentable {
+struct CameraPreview: UIViewRepresentable {
     @ObservedObject public var camera: CameraManager
     
-    public init(camera: CameraManager) {
+    init(camera: CameraManager) {
         self.camera = camera
     }
     
-    public func makeUIView(context: Context) -> UIView {
+    func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: UIScreen.main.bounds)
         
         camera.preview = AVCaptureVideoPreviewLayer(session: camera.session)
@@ -29,5 +29,5 @@ public struct CameraPreview: UIViewRepresentable {
         return view
     }
     
-    public func updateUIView(_ uiView: UIView, context: Context) {}
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }
