@@ -14,6 +14,7 @@ import AVKit
 // MARK: - Camera Manager
 
 public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
+    
     public var session = AVCaptureSession()
     public var alert = false
     public var output = AVCapturePhotoOutput()
@@ -142,6 +143,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         }
     }
+    
     
     public func takePicture() {
         guard session.isRunning else {

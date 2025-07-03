@@ -63,14 +63,8 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
     }
     
     private func checkPermissionsAndUpdateState() {
-       
-        print("hhss")
-//        DispatchQueue.main.async {
             camera.checkPermissions()
-            
-            
-//        }
-    }
+        }
 }
 
 // Public initializer for creating a CameraView without any overlays.
