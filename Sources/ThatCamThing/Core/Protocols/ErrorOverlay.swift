@@ -10,5 +10,5 @@ import SwiftUI
 
 
 public protocol ErrorOverlay: View {
-    
+    init(camera: CameraError)
 }
