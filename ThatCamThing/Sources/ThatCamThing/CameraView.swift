@@ -22,7 +22,7 @@ public enum CameraOutputType: CaseIterable {
     case photo
 }
 
-public enum CameraPosition: CaseIterable {
+public enum CameraPosition: CaseIterable, Sendable {
     case back
     case front
 }
@@ -39,7 +39,7 @@ public enum CameraHDRMode: CaseIterable {
     case auto
 }
 
-public enum CameraLensType: CaseIterable {
+public enum CameraLensType: CaseIterable, Sendable {
     case wide
     case ultraWide
     
@@ -151,15 +151,21 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 guard let device = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
                     if self.attributes.lensType == .ultraWide {
                         print("⚠️ Ultra wide camera not available, falling back to wide angle")
-                        self.attributes.lensType = .wide
+                        DispatchQueue.main.async {
+                            self.attributes.lensType = .wide
+                        }
                         guard let fallbackDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
-                            self.attributes.error = .cannotSetupInput
+                            DispatchQueue.main.async {
+                                self.attributes.error = .cannotSetupInput
+                            }
                             return
                         }
                         try self.setupWithDevice(fallbackDevice)
                         return
                     } else {
-                        self.attributes.error = .cannotSetupInput
+                        DispatchQueue.main.async {
+                            self.attributes.error = .cannotSetupInput
+                        }
                         return
                     }
                 }
@@ -168,7 +174,9 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 
             } catch {
                 print("Error setting up camera: \(error.localizedDescription)")
-                self.attributes.error = .cannotSetupInput
+                DispatchQueue.main.async {
+                    self.attributes.error = .cannotSetupInput
+                }
             }
         }
     }
@@ -191,7 +199,9 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 self.output.isHighResolutionCaptureEnabled = true
             }
         } else {
-            attributes.error = .cannotSetupOutput
+            DispatchQueue.main.async {
+                self.attributes.error = .cannotSetupOutput
+            }
         }
     }
     
@@ -227,8 +237,11 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 self.session.removeInput(currentInput)
             }
             
-            self.attributes.cameraPosition = self.attributes.cameraPosition == .back ? .front : .back
-            let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
+            let newPosition = self.attributes.cameraPosition == .back ? CameraPosition.front : .back
+            DispatchQueue.main.async {
+                self.attributes.cameraPosition = newPosition
+            }
+            let position: AVCaptureDevice.Position = newPosition == .back ? .back : .front
             let deviceType = self.attributes.lensType.deviceType
             
             guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
@@ -244,7 +257,9 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                             self.session.addInput(newInput)
                             self.currentInput = newInput
                             if position == .front {
-                                self.attributes.lensType = .wide
+                                DispatchQueue.main.async {
+                                    self.attributes.lensType = .wide
+                                }
                             }
                         }
                     } catch {
@@ -279,16 +294,22 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 self.session.removeInput(currentInput)
             }
             
-            self.attributes.lensType = self.attributes.lensType == .wide ? .ultraWide : .wide
+            let newLensType = self.attributes.lensType == .wide ? CameraLensType.ultraWide : .wide
+            DispatchQueue.main.async {
+                self.attributes.lensType = newLensType
+            }
             
             let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
-            let deviceType = self.attributes.lensType.deviceType
+            let deviceType = newLensType.deviceType
             
             guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
-                print("⚠️ \(self.attributes.lensType.displayName) camera not available, reverting to previous lens")
-                self.attributes.lensType = self.attributes.lensType == .wide ? .ultraWide : .wide
+                print("⚠️ \(newLensType.displayName) camera not available, reverting to previous lens")
+                let revertedLensType = newLensType == .wide ? CameraLensType.ultraWide : .wide
+                DispatchQueue.main.async {
+                    self.attributes.lensType = revertedLensType
+                }
                 
-                let fallbackDeviceType = self.attributes.lensType.deviceType
+                let fallbackDeviceType = revertedLensType.deviceType
                 guard let fallbackDevice = AVCaptureDevice.default(fallbackDeviceType, for: .video, position: position) else {
                     return
                 }
@@ -311,7 +332,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 if self.session.canAddInput(newInput) {
                     self.session.addInput(newInput)
                     self.currentInput = newInput
-                    print("✅ Switched to \(self.attributes.lensType.displayName) camera")
+                    print("✅ Switched to \(newLensType.displayName) camera")
                 }
             } catch {
                 print("Error switching lens: \(error.localizedDescription)")
@@ -347,8 +368,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         case .auto:
             attributes.flashMode = .off
         }
-    }
-    
+    } 
     
     public func setZoom(_ factor: CGFloat) {
         sessionQueue.async { [weak self] in
@@ -358,7 +378,11 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 try device.lockForConfiguration()
                 let clampedFactor = min(max(factor, 1.0), device.activeFormat.videoMaxZoomFactor)
                 device.videoZoomFactor = clampedFactor
-                self.attributes.zoomFactor = clampedFactor
+                
+                DispatchQueue.main.async {
+                    self.attributes.zoomFactor = clampedFactor
+                }
+                
                 device.unlockForConfiguration()
             } catch {
                 print("Error setting zoom: \(error.localizedDescription)")
@@ -372,7 +396,9 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             
             do {
                 try self.configureFrameRate(device: device, frameRate: frameRate)
-                self.attributes.frameRate = frameRate
+                DispatchQueue.main.async {
+                    self.attributes.frameRate = device.activeVideoMinFrameDuration.timescale
+                }
             } catch {
                 print("Error setting frame rate: \(error.localizedDescription)")
             }
@@ -383,12 +409,39 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
         
-        if let range = device.activeFormat.videoSupportedFrameRateRanges.first(where: { $0.maxFrameRate >= Double(frameRate) }) {
+        var bestFormat: AVCaptureDevice.Format?
+        var bestFrameRateRange: AVFrameRateRange?
+        
+        print("🔍 Searching for format supporting \(frameRate) fps...")
+        
+        for format in device.formats {
+            for range in format.videoSupportedFrameRateRanges {
+                if range.maxFrameRate >= Double(frameRate) && range.minFrameRate <= Double(frameRate) {
+                    let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                    print("   Found format: \(dimensions.width)x\(dimensions.height) @ \(range.minFrameRate)-\(range.maxFrameRate) fps")
+                    
+                    if bestFormat == nil ||
+                       CMVideoFormatDescriptionGetDimensions(format.formatDescription).width >
+                       CMVideoFormatDescriptionGetDimensions(bestFormat!.formatDescription).width {
+                        bestFormat = format
+                        bestFrameRateRange = range
+                    }
+                }
+            }
+        }
+        
+        if let format = bestFormat {
+            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            print("✅ Selected format: \(dimensions.width)x\(dimensions.height)")
+            
+            device.activeFormat = format
             device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
             device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
-            print("✅ Frame rate set to \(frameRate) fps.")
+            
+            print("✅ Frame rate set to \(frameRate) fps")
         } else {
-            print("❌ Desired frame rate \(frameRate) is not supported by the active format.")
+            print("❌ No format found that supports exactly \(frameRate) fps. Using fallback.")
+            handleFrameRateFallback(device: device, targetFrameRate: frameRate, formats: device.formats)
         }
     }
     
@@ -417,7 +470,9 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         }
         
         print("🔄 Using closest supported frame rate: \(closestFrameRate) fps")
-        attributes.frameRate = Int32(closestFrameRate)
+        DispatchQueue.main.async {
+            self.attributes.frameRate = Int32(closestFrameRate)
+        }
     }
     
     private func saveImageToPhotoLibrary(_ image: UIImage) {
