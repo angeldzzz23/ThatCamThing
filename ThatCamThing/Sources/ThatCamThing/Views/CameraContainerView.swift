@@ -14,12 +14,7 @@ import ThatCamThing
 public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
     
     @StateObject private var camera = CameraManager()
-    
-    // This state acts as a "gate" to ensure the CameraPreview is only rendered
-    // when we are certain the camera session is valid, preventing crashes during
-    // app lifecycle transitions (e.g., returning from settings).
-    @State private var isCameraActive = false
-    
+ 
     private let overlay: (CameraManager) -> Overlay
     private let errorOverlay: (CameraManager) -> ErrorOverlay
     private var onImageCapturedAction: ((UIImage) -> Void)?
@@ -38,7 +33,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
     public var body: some View {
         ZStack {
             // Only render the CameraPreview if our gate is open and permissions are granted.
-            if isCameraActive && !camera.showAlert {
+            if !camera.showAlert {
                 CameraPreview(camera: camera)
                     .ignoresSafeArea(.all)
             } else {
@@ -57,12 +52,12 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
         .onAppear(perform: checkPermissionsAndUpdateState)
         .onDisappear {
             // Close the gate and stop the camera when the view disappears.
-            isCameraActive = false
+            
             camera.stopCamera()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
             // When going to the background, immediately close the gate and stop the camera.
-            isCameraActive = false
+            
             camera.stopCamera()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
@@ -82,7 +77,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
             camera.checkPermissions()
             // The gate is opened only AFTER the check is complete.
             // If showAlert becomes true, the preview will be hidden anyway.
-            isCameraActive = true
+            
         }
     }
 }
