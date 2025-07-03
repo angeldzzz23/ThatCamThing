@@ -66,7 +66,6 @@ public struct CameraMedia {
 // TODO: remove errors from here and capture media
 public struct CameraManagerAttributes {
     public var capturedMedia: CameraMedia?
-//    public var error: CameraError?
     public var outputType = CameraOutputType.photo
     public var cameraPosition = CameraPosition.back
     public var zoomFactor: CGFloat = 1.0
