@@ -32,7 +32,6 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
 
     public var body: some View {
         ZStack {
-            // Only render the CameraPreview if our gate is open and permissions are granted.
             
             if !camera.showAlert {
                 CameraPreview(camera: camera)

@@ -5,7 +5,8 @@
 //  Created by angel zambrano on 7/3/25.
 //
 
-import Foundation
+
+import SwiftUI
 
 public protocol ErrorOverlay: View {
     var cameraManager: CameraManager { get }
