@@ -26,7 +26,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     @Published public var capturedMedia: CameraMedia? = nil
     
     // MARK: - Private Properties
-    private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
+    private let sessionQueue = DispatchQueue(label: Constants.dispatchQueueName)
     private var currentInput: AVCaptureDeviceInput?
     
     // MARK: - Initialization
