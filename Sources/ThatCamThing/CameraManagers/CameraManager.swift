@@ -11,10 +11,11 @@ import PhotosUI
 import AVFoundation
 import AVKit
 
-// MARK: - Camera Manager
+// MARK: - Camera Manager Core
 
 public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     
+    // MARK: - Public Properties
     public var session = AVCaptureSession()
     public var output = AVCapturePhotoOutput()
     public var preview: AVCaptureVideoPreviewLayer
@@ -24,14 +25,20 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     @Published public var attributes = CameraManagerAttributes()
     @Published public var capturedMedia: CameraMedia? = nil
     
-    private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
+    // MARK: - Private Properties
+    private let sessionQueue = DispatchQueue(label: Constants.dispatchQueueName)
     private var currentInput: AVCaptureDeviceInput?
     
-    
+    // MARK: - Initialization
     public override init() {
         self.preview = AVCaptureVideoPreviewLayer()
         super.init()
     }
+}
+
+// MARK: - Setup & Permissions
+
+extension CameraManager {
     
     public func checkPermissions() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -62,7 +69,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     func setUp() {
-        
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
@@ -77,7 +83,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 
                 guard let device = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
                     if self.attributes.lensType == .ultraWide {
-                        print(" Ultra wide camera not available, falling back to wide angle")
+                        print("Ultra wide camera not available, falling back to wide angle")
                         DispatchQueue.main.async {
                             self.attributes.lensType = .wide
                         }
@@ -136,32 +142,11 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         }
     }
-    
-    public func takePicture() {
-        guard session.isRunning else {
-            print(" Attempted to take picture while session is not running.")
-            return
-        }
-        
-        let settings = AVCapturePhotoSettings()
-        
-        if currentInput?.device.hasFlash == true {
-            switch attributes.flashMode {
-            case .off:
-                settings.flashMode = .off
-            case .on:
-                settings.flashMode = .on
-            case .auto:
-                settings.flashMode = .auto
-            }
-        }
-        
-        if output.isHighResolutionCaptureEnabled {
-            settings.isHighResolutionPhotoEnabled = true
-        }
-        
-        output.capturePhoto(with: settings, delegate: self)
-    }
+}
+
+// MARK: - Camera Controls
+
+extension CameraManager {
     
     public func switchCamera() {
         sessionQueue.async { [weak self] in
@@ -183,7 +168,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             
             guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
                 if self.attributes.lensType == .ultraWide {
-                    print(" Ultra wide camera not available for \(position == .back ? "back" : "front") camera, using wide angle")
+                    print("Ultra wide camera not available for \(position == .back ? "back" : "front") camera, using wide angle")
                     guard let fallbackDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
                         return
                     }
@@ -240,7 +225,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             let deviceType = newLensType.deviceType
             
             guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
-                print(" \(newLensType.displayName) camera not available, reverting to previous lens")
+                print("\(newLensType.displayName) camera not available, reverting to previous lens")
                 let revertedLensType = newLensType == .wide ? CameraLensType.ultraWide : .wide
                 DispatchQueue.main.async {
                     self.attributes.lensType = revertedLensType
@@ -269,17 +254,12 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 if self.session.canAddInput(newInput) {
                     self.session.addInput(newInput)
                     self.currentInput = newInput
-                    print(" Switched to \(newLensType.displayName) camera")
+                    print("Switched to \(newLensType.displayName) camera")
                 }
             } catch {
                 print("Error switching lens: \(error.localizedDescription)")
             }
         }
-    }
-    
-    public func isUltraWideAvailable() -> Bool {
-        let position: AVCaptureDevice.Position = attributes.cameraPosition == .back ? .back : .front
-        return AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: position) != nil
     }
     
     public func pauseCamera() {
@@ -289,7 +269,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 self.session.stopRunning()
                 DispatchQueue.main.async {
                     self.attributes.isPaused = true
-                    print(" Camera session paused.")
+                    print("Camera session paused.")
                 }
             }
         }
@@ -302,7 +282,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
                 self.session.startRunning()
                 DispatchQueue.main.async {
                     self.attributes.isPaused = false
-                    print(" Camera session resumed.")
+                    print("Camera session resumed.")
                 }
             }
         }
@@ -321,6 +301,42 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             self?.session.startRunning()
         }
     }
+}
+
+// MARK: - Capture Operations
+
+extension CameraManager {
+    
+    public func takePicture() {
+        guard session.isRunning else {
+            print("Attempted to take picture while session is not running.")
+            return
+        }
+        
+        let settings = AVCapturePhotoSettings()
+        
+        if currentInput?.device.hasFlash == true {
+            switch attributes.flashMode {
+            case .off:
+                settings.flashMode = .off
+            case .on:
+                settings.flashMode = .on
+            case .auto:
+                settings.flashMode = .auto
+            }
+        }
+        
+        if output.isHighResolutionCaptureEnabled {
+            settings.isHighResolutionPhotoEnabled = true
+        }
+        
+        output.capturePhoto(with: settings, delegate: self)
+    }
+}
+
+// MARK: - Configuration
+
+extension CameraManager {
     
     public func switchFlash() {
         switch attributes.flashMode {
@@ -334,7 +350,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     }
     
     public func setZoom(_ factor: CGFloat) {
-        
         sessionQueue.async { [weak self] in
             guard let self = self, let device = self.currentInput?.device else { return }
             
@@ -373,7 +388,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
         
-        print(" Attempting to set frame rate to \(frameRate) fps...")
+        print("Attempting to set frame rate to \(frameRate) fps...")
         
         var bestFormat: AVCaptureDevice.Format?
         
@@ -396,20 +411,20 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         
         if let format = bestFormat {
             let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-            print(" Selected format: \(dimensions.width)x\(dimensions.height) for \(frameRate) fps")
+            print("Selected format: \(dimensions.width)x\(dimensions.height) for \(frameRate) fps")
             
             device.activeFormat = format
             device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
             device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
             
-            print(" Frame rate successfully set.")
+            print("Frame rate successfully set.")
         } else {
-            print(" No format found that supports \(frameRate) fps. The device may not support this frame rate. Current format will be kept.")
+            print("No format found that supports \(frameRate) fps. The device may not support this frame rate. Current format will be kept.")
         }
     }
     
     private func handleFrameRateFallback(device: AVCaptureDevice, targetFrameRate: Int32, formats: [AVCaptureDevice.Format]) {
-        print(" Available frame rates:")
+        print("Available frame rates:")
         
         var allRanges: [AVFrameRateRange] = []
         
@@ -433,16 +448,25 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         }
         
-        print(" Using closest supported frame rate: \(closestFrameRate) fps")
+        print("Using closest supported frame rate: \(closestFrameRate) fps")
         DispatchQueue.main.async {
             self.attributes.frameRate = Int32(closestFrameRate)
         }
     }
-    
 }
 
-// MARK: conforming to AVCapturePhotoCaptureDelegate
-// This is where we process the image
+// MARK: - Utilities
+
+extension CameraManager {
+    
+    public func isUltraWideAvailable() -> Bool {
+        let position: AVCaptureDevice.Position = attributes.cameraPosition == .back ? .back : .front
+        return AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: position) != nil
+    }
+}
+
+// MARK: - Photo Capture Delegate
+
 extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: (any Error)?) {
@@ -464,11 +488,11 @@ extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
             timestamp: Date()
         )
         capturedMedia = cameraMedia
-        
     }
 }
 
-// MARK: properties
+// MARK: - Computed Properties
+
 extension CameraManager {
     
     public var flashMode: CameraFlashMode {
@@ -480,5 +504,3 @@ extension CameraManager {
         attributes.cameraPosition == .front
     }
 }
-
-// MARK:
