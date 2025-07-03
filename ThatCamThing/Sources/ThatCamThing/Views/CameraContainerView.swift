@@ -36,6 +36,7 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
             if !camera.showAlert {
                 CameraPreview(camera: camera)
                     .ignoresSafeArea(.all)
+                
             } else {
                 // Provide a black background when the camera is not active.
                 Color.black.ignoresSafeArea(.all)
