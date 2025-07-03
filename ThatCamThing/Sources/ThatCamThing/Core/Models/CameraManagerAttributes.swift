@@ -14,6 +14,7 @@ import AVKit
 
 // MARK: - Core Models and Enums
 
+// Camera Error
 public enum CameraError: Error {
     case cameraPermissionsNotGranted
     case cannotSetupInput, cannotSetupOutput
