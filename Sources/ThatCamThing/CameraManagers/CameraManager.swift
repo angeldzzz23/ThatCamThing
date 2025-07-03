@@ -142,7 +142,7 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             print(" Attempted to take picture while session is not running.")
             return
         }
-
+        
         let settings = AVCapturePhotoSettings()
         
         if currentInput?.device.hasFlash == true {
@@ -382,18 +382,18 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         if let format = device.formats.first(where: { format in
             let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
             return dimensions.width == currentDimensions.width &&
-                   dimensions.height == currentDimensions.height &&
-                   format.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= Double(frameRate) })
+            dimensions.height == currentDimensions.height &&
+            format.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= Double(frameRate) })
         }) {
             bestFormat = format
         }
         else if let format = device.formats
             .sorted(by: { CMVideoFormatDescriptionGetDimensions($0.formatDescription).width > CMVideoFormatDescriptionGetDimensions($1.formatDescription).width })
             .first(where: { $0.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= Double(frameRate) })
-        }) {
+            }) {
             bestFormat = format
         }
-
+        
         if let format = bestFormat {
             let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
             print(" Selected format: \(dimensions.width)x\(dimensions.height) for \(frameRate) fps")
@@ -469,7 +469,6 @@ extension CameraManager: @preconcurrency AVCapturePhotoCaptureDelegate {
 }
 
 // MARK: properties
-
 extension CameraManager {
     
     public var flashMode: CameraFlashMode {
@@ -481,3 +480,5 @@ extension CameraManager {
         attributes.cameraPosition == .front
     }
 }
+
+// MARK:
