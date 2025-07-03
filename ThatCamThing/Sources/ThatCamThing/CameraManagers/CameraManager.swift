@@ -16,11 +16,10 @@ import AVKit
 public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     
     public var session = AVCaptureSession()
-    public var alert = false
     public var output = AVCapturePhotoOutput()
     public var preview: AVCaptureVideoPreviewLayer
-    @Published public var showAlert = false
     
+    @Published public var showAlert = false 
     @Published public var attributes = CameraManagerAttributes()
     
     private let sessionQueue = DispatchQueue(label: "com.thatcamthing.sessionQueue")
@@ -143,7 +142,6 @@ public class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
             }
         }
     }
-    
     
     public func takePicture() {
         guard session.isRunning else {
