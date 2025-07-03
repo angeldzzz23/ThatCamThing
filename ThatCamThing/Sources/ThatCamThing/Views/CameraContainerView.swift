@@ -51,10 +51,10 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
         }
         .onAppear(perform: checkPermissionsAndUpdateState)
 
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            // When returning, re-check permissions before opening the gate.
-            checkPermissionsAndUpdateState()
-        }
+//        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+//            // When returning, re-check permissions before opening the gate.
+//            checkPermissionsAndUpdateState()
+//        }
         .onChange(of: camera.attributes.capturedMedia?.image) { oldValue, newValue in
             if let newValue {
                 onImageCapturedAction?(newValue)
@@ -64,11 +64,12 @@ public struct CameraView<Overlay: View, ErrorOverlay: View>: View {
     
     private func checkPermissionsAndUpdateState() {
        
-        DispatchQueue.main.async {
+        print("hhss")
+//        DispatchQueue.main.async {
             camera.checkPermissions()
             
             
-        }
+//        }
     }
 }
 
