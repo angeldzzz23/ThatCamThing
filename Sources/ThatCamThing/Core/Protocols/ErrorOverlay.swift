@@ -21,16 +21,3 @@ public protocol ErrorOverlay: View {
        /// - Parameter cameraError: The error encountered by the camera session.
     init(cameraError: CameraError)
 }
-
-
-//public struct EmptyErrorOverlay: View {
-//    public let camera: CameraError
-//    
-//    public init(camera: CameraError) {
-//        self.camera = camera
-//    }
-//    
-//    public var body: some View {
-//        EmptyView()
-//    }
-//}

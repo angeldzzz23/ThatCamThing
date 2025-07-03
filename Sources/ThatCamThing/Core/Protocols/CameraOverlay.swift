@@ -36,5 +36,3 @@ public struct EmptyCameraOverlay: CameraOverlay {
         EmptyView()
     }
 }
-
-
