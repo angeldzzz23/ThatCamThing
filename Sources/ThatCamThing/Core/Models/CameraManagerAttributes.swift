@@ -70,4 +70,28 @@ public struct CameraManagerAttributes {
     public var lensType = CameraLensType.wide
     public var isPaused = false
     public var isUltraWideLensAvailable = false
+    
+    public init(
+        outputType: CameraOutputType = .photo,
+        cameraPosition: CameraPosition = .back,
+        zoomFactor: CGFloat = 1.0,
+        frameRate: Int32 = 30,
+        flashMode: CameraFlashMode = .off,
+        resolution: AVCaptureSession.Preset = .hd1920x1080,
+        mirrorOutput: Bool = false,
+        lensType: CameraLensType = .wide,
+        isPaused: Bool = false,
+        isUltraWideLensAvailable: Bool = false
+    ) {
+        self.outputType = outputType
+        self.cameraPosition = cameraPosition
+        self.zoomFactor = zoomFactor
+        self.frameRate = frameRate
+        self.flashMode = flashMode
+        self.resolution = resolution
+        self.mirrorOutput = mirrorOutput
+        self.lensType = lensType
+        self.isPaused = isPaused
+        self.isUltraWideLensAvailable = isUltraWideLensAvailable
+    }
 }
