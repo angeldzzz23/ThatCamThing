@@ -258,23 +258,26 @@ public struct CustomCameraOverlay:  CameraOverlay {
     /// Bottom container with pause/play, status, and lens switching controls
     private var bottom: some View {
         HStack {
-            Button(action: {
-                if camera.attributes.isPaused {
-                    camera.resumeCamera()
-                } else {
-                    camera.pauseCamera()
-                }
-            }) {
-                Image(systemName: camera.attributes.isPaused ? "play.fill" : "pause.fill")
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .padding(12)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(Circle())
-            }
+            playPauseBtn
             Spacer()
             cameraStatusHUD
             changeCameraLensBtn
+        }
+    }
+    private var playPauseBtn: some View {
+        Button(action: {
+            if camera.attributes.isPaused {
+                camera.resumeCamera()
+            } else {
+                camera.pauseCamera()
+            }
+        }) {
+            Image(systemName: camera.attributes.isPaused ? "play.fill" : "pause.fill")
+                .font(.title3)
+                .foregroundColor(.white)
+                .padding(12)
+                .background(Color.black.opacity(0.6))
+                .clipShape(Circle())
         }
     }
     
