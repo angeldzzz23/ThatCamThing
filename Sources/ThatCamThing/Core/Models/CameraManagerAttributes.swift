@@ -4,8 +4,6 @@
 //
 //  Created by angel zambrano on 7/2/25.
 //
-
-
 import Foundation
 import SwiftUI
 import PhotosUI
