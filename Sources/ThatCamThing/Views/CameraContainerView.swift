@@ -18,21 +18,23 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
     private let overlay: (CameraManager) -> Overlay
     private let errorOverlay: (CameraError) -> ErrorOverlay
     private var onImageCapturedAction: ((UIImage) -> Void)?
+    private let defaultAttributes: CameraManagerAttributes?
 
     // This initializer is fileprivate to ensure it's only used by our extension methods.
     fileprivate init(
         overlay: @escaping (CameraManager) -> Overlay,
         errorOverlay: @escaping (CameraError) -> ErrorOverlay,
-        onImageCaptured: ((UIImage) -> Void)? = nil
+        onImageCaptured: ((UIImage) -> Void)? = nil,
+        defaultAttributes: CameraManagerAttributes? = nil
     ) {
         self.overlay = overlay
         self.errorOverlay = errorOverlay
         self.onImageCapturedAction = onImageCaptured
+        self.defaultAttributes = defaultAttributes
     }
 
     public var body: some View {
         ZStack {
-            
             if !camera.containsErrors {
                 CameraPreview(camera: camera)
                     .ignoresSafeArea(.all)
@@ -50,7 +52,7 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
             }
             
         }
-        .onAppear(perform: checkPermissionsAndUpdateState)
+        .onAppear(perform: setupCameraWithAttributes)
         .onChange(of: camera.capturedMedia?.image) { oldValue, newValue in
             if let newValue {
                 onImageCapturedAction?(newValue)
@@ -59,28 +61,37 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
        
     }
     
-    private func checkPermissionsAndUpdateState() {
+    private func setupCameraWithAttributes() {
+        // Apply default attributes if provided
+        if let attributes = defaultAttributes {
+            camera.attributes = attributes
+        }
         camera.checkPermissions()
     }
 }
 
-public struct EmptyErrorOverlay: View {
-    public let camera: CameraError
-    
-    public init(camera: CameraError) {
-        self.camera = camera
-    }
-    
-    public var body: some View {
-        EmptyView()
-    }
-}
+
 
 // Public initializer for creating a CameraView without any overlays.
 extension CameraView where Overlay == EmptyCameraOverlay, ErrorOverlay == EmptyErrorOverlay {
     /// Initializes a CameraView without any custom overlays.
     public init() {
-        self.init(overlay: { EmptyCameraOverlay(camera: $0) }, errorOverlay: { EmptyErrorOverlay(camera: $0) }, onImageCaptured: nil)
+        self.init(
+            overlay: { EmptyCameraOverlay(camera: $0) },
+            errorOverlay: { EmptyErrorOverlay(camera: $0) },
+            onImageCaptured: nil,
+            defaultAttributes: nil
+        )
+    }
+    
+    /// Initializes a CameraView with default attributes.
+    public init(attributes: CameraManagerAttributes) {
+        self.init(
+            overlay: { EmptyCameraOverlay(camera: $0) },
+            errorOverlay: { EmptyErrorOverlay(camera: $0) },
+            onImageCaptured: nil,
+            defaultAttributes: attributes
+        )
     }
 }
 
@@ -92,9 +103,12 @@ extension CameraView {
      - returns: A new `CameraView` configured with the image capture action.
      */
     public func onImageCaptured(_ action: @escaping (UIImage) -> Void) -> CameraView<Overlay, ErrorOverlay> {
-        var newView = self
-        newView.onImageCapturedAction = action
-        return newView
+        CameraView<Overlay, ErrorOverlay>(
+            overlay: self.overlay,
+            errorOverlay: self.errorOverlay,
+            onImageCaptured: action,
+            defaultAttributes: self.defaultAttributes
+        )
     }
 
     /**
@@ -106,7 +120,8 @@ extension CameraView {
         CameraView<NewOverlay, ErrorOverlay>(
             overlay: content,
             errorOverlay: self.errorOverlay,
-            onImageCaptured: self.onImageCapturedAction
+            onImageCaptured: self.onImageCapturedAction,
+            defaultAttributes: self.defaultAttributes
         )
     }
     
@@ -119,7 +134,22 @@ extension CameraView {
         CameraView<Overlay, NewErrorOverlay>(
             overlay: self.overlay,
             errorOverlay: content,
-            onImageCaptured: self.onImageCapturedAction
+            onImageCaptured: self.onImageCapturedAction,
+            defaultAttributes: self.defaultAttributes
+        )
+    }
+    
+    /**
+     Sets default camera attributes for the camera view.
+     - parameter attributes: The default `CameraManagerAttributes` to use.
+     - returns: A new `CameraView` with the specified default attributes.
+     */
+    public func setAttributes(_ attributes: CameraManagerAttributes) -> CameraView<Overlay, ErrorOverlay> {
+        CameraView<Overlay, ErrorOverlay>(
+            overlay: self.overlay,
+            errorOverlay: self.errorOverlay,
+            onImageCaptured: self.onImageCapturedAction,
+            defaultAttributes: attributes
         )
     }
 }
