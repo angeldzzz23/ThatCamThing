@@ -50,7 +50,6 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
                     errorOverlay(cameraError)
                 }
             }
-            
         }
         .onAppear(perform: setupCameraWithAttributes)
         .onChange(of: camera.capturedMedia?.image) { oldValue, newValue in
