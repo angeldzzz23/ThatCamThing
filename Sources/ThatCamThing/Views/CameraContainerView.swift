@@ -70,17 +70,7 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
     }
 }
 
-public struct EmptyErrorOverlay: View {
-    public let camera: CameraError
-    
-    public init(camera: CameraError) {
-        self.camera = camera
-    }
-    
-    public var body: some View {
-        EmptyView()
-    }
-}
+
 
 // Public initializer for creating a CameraView without any overlays.
 extension CameraView where Overlay == EmptyCameraOverlay, ErrorOverlay == EmptyErrorOverlay {

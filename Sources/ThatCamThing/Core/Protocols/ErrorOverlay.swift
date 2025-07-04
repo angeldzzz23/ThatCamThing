@@ -21,3 +21,4 @@ public protocol ErrorOverlay: View {
        /// - Parameter cameraError: The error encountered by the camera session.
     init(cameraError: CameraError)
 }
+
