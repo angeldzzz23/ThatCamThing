@@ -31,18 +31,13 @@ public struct DefaultCameraOverlay:  CameraOverlay {
     public var body: some View {
 
         ZStack {
-
-            Color.clear
-                .contentShape(Rectangle())
-
+            
             VStack(spacing: 0) {
 
                 Spacer()
 
-
                 // Main controls
                 mainControlsContainer
-
 
                 Spacer().frame(height: 30)
 
