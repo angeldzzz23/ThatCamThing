@@ -13,7 +13,7 @@ import AVKit
 /// A comprehensive camera overlay that provides a full-featured interface for camera controls.
 /// This overlay includes flash controls, frame rate selection, zoom controls, settings panel,
 /// and camera switching capabilities. It's designed to work with the ThatCamThing camera library.
-/// User it for inspo on how to use the library or to test how
+/// User it for inspo on how to use the library or to test how the library actually works 
 public struct CustomCameraOverlay:  CameraOverlay {
     
     // MARK: properties
@@ -74,7 +74,6 @@ public struct CustomCameraOverlay:  CameraOverlay {
             }
         }
     }
-    
     
     // MARK: Views
 
@@ -264,6 +263,7 @@ public struct CustomCameraOverlay:  CameraOverlay {
             changeCameraLensBtn
         }
     }
+    
     private var playPauseBtn: some View {
         Button(action: {
             if camera.attributes.isPaused {
@@ -326,6 +326,7 @@ public struct CustomCameraOverlay:  CameraOverlay {
     
     
     // MARK: Overlays
+    
     /// Horizontal scrollable frame rate picker overlay
     /// Appears when the frame rate button is tapped
     private var overlayFrameRatePicker: some View {
@@ -378,7 +379,6 @@ public struct CustomCameraOverlay:  CameraOverlay {
 
     /// Main settings panel overlay containing camera configuration options
     /// Slides up from the bottom when settings button is tapped
-    
     private var settingsPannel: some View {
         VStack {
             Spacer()
