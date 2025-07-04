@@ -16,15 +16,15 @@ import ThatCamThing
 /// - A button that takes the user to the app's Settings page
 ///
 /// Use this as the default error overlay to handle permission-related errors in a user-friendly way.
-struct DefaultCameraErrorView: ErrorOverlay {
+public struct DefaultCameraErrorView: ErrorOverlay {
     
     let cameraError: CameraError
 
-    init(cameraError: CameraError) {
+    public init(cameraError: CameraError) {
         self.cameraError = cameraError
     }
 
-    var body: some View {
+    public var body: some View {
         VStack {
             title
             subtitle
