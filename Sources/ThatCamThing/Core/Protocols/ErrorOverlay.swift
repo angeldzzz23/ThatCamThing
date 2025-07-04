@@ -4,8 +4,6 @@
 //
 //  Created by angel zambrano on 7/3/25.
 //
-
-
 import SwiftUI
 
 /// A protocol that defines an overlay view used to present camera-related errors on top of the camera preview.
