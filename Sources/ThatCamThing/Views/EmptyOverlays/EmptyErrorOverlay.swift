@@ -6,6 +6,10 @@
 //
 import SwiftUI
 
+/// A no-op implementation of an error overlay that renders nothing.
+///
+/// Useful as a default error overlay when no error UI should be shown over the camera preview.
+/// This struct conforms to `View` and is initialized with a `CameraError`, but does not display it.
 public struct EmptyErrorOverlay: View {
     public let camera: CameraError
     
