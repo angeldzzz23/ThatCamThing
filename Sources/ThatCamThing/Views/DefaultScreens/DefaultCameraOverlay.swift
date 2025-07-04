@@ -62,8 +62,6 @@ public struct DefaultCameraOverlay:  CameraOverlay {
         VStack(spacing: 12) {
             // Always show zoom buttons (like Apple's camera app)
             iosZoomButtons
-
-
         }
     }
 
