@@ -29,7 +29,95 @@ You can add **ThatCamThing** to your Xcode project using the Swift Package Manag
 
 ## 🚀 How to Use
 
-Integrating `ThatCamThing` is designed to be as simple as possible. Follow these steps to get a working camera view in your app.
+Integrating `ThatCamThing` into your SwiftUI view takes just a few steps.
 
-### Step 1: Import the Library
-First, import `ThatCamThing` in the SwiftUI view where you want to use the camera.
+### 🧩 Step 1: Import the Library
+
+```swift
+import ThatCamThing
+```
+
+---
+
+### 🔐 Step 2: Add Camera Permissions
+
+In your `Info.plist`, add:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>We need access to your camera for capturing photos.</string>
+```
+
+---
+
+### 📸 Step 3: Use `CameraView` with Defaults
+
+The library provides default overlay and error views to get started quickly:
+
+```swift
+CameraView()
+    .setOverlayScreen(DefaultCameraOverlay.init)
+    .setErrorScreen(DefaultCameraErrorView.init)
+```
+
+---
+
+### 🎛️ Customizing Camera Attributes
+
+To customize the camera behavior, you can configure `CameraManagerAttributes`:
+
+```swift
+CameraView()
+    .setOverlayScreen(DefaultCameraOverlay.init)
+    .setErrorScreen(DefaultCameraErrorView.init)
+    .setAttributes(CameraManagerAttributes(
+        cameraPosition: .back,
+        frameRate: 60,
+        flashMode: .auto,
+        resolution: .hd4K3840x2160,
+        lensType: .wide
+    ))
+    .onImageCaptured { image in
+        // Handle captured UIImage
+    }
+```
+
+---
+
+### 🧪 Custom Overlays
+
+You can customize the UI by providing your own views:
+
+#### ✅ Custom Overlay Screen
+
+To use your own camera overlay, conform to the `CameraOverlay` protocol:
+
+```swift
+struct MyOverlay: CameraOverlay {
+    func body(for manager: CameraManager) -> some View {
+        // Custom overlay UI here
+    }
+}
+```
+
+#### ❗ Custom Error Screen
+
+To display a custom error view, conform to the `CameraErrorOverlay` protocol:
+
+```swift
+struct MyErrorView: CameraErrorOverlay {
+    func body(for error: CameraError) -> some View {
+        // Custom error UI here
+    }
+}
+```
+
+Then apply them like this:
+
+```swift
+CameraView()
+    .setOverlayScreen(MyOverlay.init)
+    .setErrorScreen(MyErrorView.init)
+```
+
+---
