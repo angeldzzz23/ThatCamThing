@@ -94,9 +94,7 @@ To use your own camera overlay, conform to the `CameraOverlay` protocol:
 
 ```swift
 struct MyOverlay: CameraOverlay {
-    func body(for manager: CameraManager) -> some View {
-        // Custom overlay UI here
-    }
+   
 }
 ```
 
@@ -106,9 +104,7 @@ To display a custom error view, conform to the `CameraErrorOverlay` protocol:
 
 ```swift
 struct MyErrorView: CameraErrorOverlay {
-    func body(for error: CameraError) -> some View {
-        // Custom error UI here
-    }
+    
 }
 ```
 
@@ -120,4 +116,3 @@ CameraView()
     .setErrorScreen(MyErrorView.init)
 ```
 
----
