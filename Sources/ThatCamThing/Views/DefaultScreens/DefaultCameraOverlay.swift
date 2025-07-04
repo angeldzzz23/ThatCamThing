@@ -2,462 +2,339 @@
 //  File.swift
 //  ThatCamThing
 //
-//  Created by angel zambrano on 7/3/25.
+//  Created by angel zambrano on 7/4/25.
 //
 
 import Foundation
 import SwiftUI
-import ThatCamThing
 import AVKit
 
-public struct CustomCameraOverlay:  CameraOverlay {
+/// A comprehensive camera overlay that provides a full-featured interface for camera controls.
+public struct DefaultCameraOverlay:  CameraOverlay {
+
+    // MARK: properties
     
+    /// The camera manager that this overlay controls
     @ObservedObject var camera: CameraManager
-    @State private var showFrameRatePicker = false
-    @State private var showSettingsPanel = false
     
+    // Zoom presets like iOS Camera app
+    private let zoomPresets: [CGFloat] = [0.5, 1.0, 2.0]
+
+    // MARK: initializers
+
+    /// Initializes the camera overlay with a camera manager
+    /// - Parameter camera: The CameraManager instance to control
     public init(camera: CameraManager) {
         self.camera = camera
     }
-    
-    private var cameraStatusHUD: some View {
-        VStack(spacing: 4) {
-            if let _ = camera.cameraErrors {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.red)
-            } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-            }
-            
-            Text(camera.attributes.cameraPosition == .back ? "BACK" : "FRONT")
-                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                .foregroundColor(.white)
-        }
-        .padding(8)
-        .background(Color.black.opacity(0.6))
-        .cornerRadius(8)
-    }
-    
-    private var bottom: some View {
-        HStack {
-            Button(action: {
-                if camera.attributes.isPaused {
-                    camera.resumeCamera()
-                } else {
-                    camera.pauseCamera()
-                }
-            }) {
-                Image(systemName: camera.attributes.isPaused ? "play.fill" : "pause.fill")
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .padding(12)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(Circle())
-            }
-            Spacer()
-            cameraStatusHUD
-            cameraLens
-        }
-    }
-    
-    // Frame rate options
-    private let frameRateOptions: [Int32] = [15, 24, 30, 60, 120]
-    
-    // Resolution options
-    private let resolutionOptions: [AVCaptureSession.Preset] = [
-        .hd1280x720,
-        .hd1920x1080,
-        .hd4K3840x2160,
-        .photo
-    ]
-    
-    private func resolutionName(_ preset: AVCaptureSession.Preset) -> String {
-        switch preset {
-        case .hd1280x720: return "720p"
-        case .hd1920x1080: return "1080p"
-        case .hd4K3840x2160: return "4K"
-        case .photo: return "Photo"
-        default: return "Unknown"
-        }
-    }
-       
-    private var settingsBtn: some View {
-        
-        Button(action: {
-            withAnimation(.spring()) {
-                showSettingsPanel.toggle()
-                showFrameRatePicker = false
-            }
-        }) {
-            Image(systemName: "gearshape.fill")
-                .font(.title2)
-                .foregroundColor(.white)
-                .padding()
-                .background(Color.black.opacity(0.6))
-                .clipShape(Circle())
-        }
-    }
-    
-    private var rightSide: some View {
-        
-        VStack(spacing: 20) {
-            
-            VStack {
-                Button(action: {
-                    camera.setZoom(camera.attributes.zoomFactor + 0.5)
-                }) {
-                    Image(systemName: "plus")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                        .padding(12)
-                        .background(Color.black.opacity(0.6))
-                        .clipShape(Circle())
-                }
-                
-                Text("\(String(format: "%.1f", camera.attributes.zoomFactor))x")
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.black.opacity(0.6))
-                    .cornerRadius(4)
-                
-                Button(action: {
-                    camera.setZoom(max(1.0, camera.attributes.zoomFactor - 0.5))
-                }) {
-                    Image(systemName: "minus")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                        .padding(12)
-                        .background(Color.black.opacity(0.6))
-                        .clipShape(Circle())
-                }
-            }
-            
-        }
-        
-    }
-    
-    
-    private var middleContainer: some View  {
-        HStack {
-            settingsBtn
-            Spacer()
-            rightSide
-        }
-    }
-    
-    private func changeCameraSetting(action: @escaping () -> Void) {
-        // Check if the camera was running before this operation.
-        let wasRunning = !camera.attributes.isPaused
-        
-        // If it was running, pause it first.
-        if wasRunning {
-            camera.pauseCamera()
-        }
-        
-        // Perform the action and then resume on the next run cycle.
-        // This gives the session time to properly process the state changes.
-        DispatchQueue.main.async {
-            action()
-            if wasRunning {
-                camera.resumeCamera()
-            }
-        }
-    }
-    
-    private var captureButton: some View {
-        VStack {
-            Button(action: {
-                camera.takePicture()
-            }) {
-                Circle()
-                    .stroke(Color.white, lineWidth: 5)
-                    .frame(width: 80, height: 80)
-                    .background(
-                        Circle()
-                            .fill(camera.attributes.isPaused ? Color.white.opacity(0.5) : Color.white)
-                            .frame(width: 70, height: 70)
-                    )
-            }
-            .disabled(camera.attributes.isPaused)
-        }
-        .padding(.bottom, 50)
-    }
-    
+
     public var body: some View {
-        
+
         ZStack {
-            
-            VStack {
-                topContainer
+
+            Color.clear
+                .contentShape(Rectangle())
+
+            VStack(spacing: 0) {
 
                 Spacer()
 
-                middleContainer
 
-                Spacer()
+                // Main controls
+                mainControlsContainer
 
-                captureButton
-                
-                bottom
+
+                Spacer().frame(height: 30)
+
+                // Dynamic zoom display
+                dynamicZoomDisplay
+
+                Spacer().frame(height: 50)
+
             }
-            .padding(.horizontal)
-            
-            // OVERLAY: Frame rate picker
-            if showFrameRatePicker {
-                VStack {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(frameRateOptions, id: \.self) { frameRate in
-                                Button(action: {
-                                    changeCameraSetting {
-                                        camera.setFrameRate(frameRate)
-                                    }
-                                    withAnimation {
-                                        showFrameRatePicker = false
-                                    }
-                                }) {
-                                    VStack(spacing: 4) {
-                                        Text("\(frameRate)")
-                                            .font(.system(.title3, design: .monospaced, weight: .bold))
-                                        Text("fps")
-                                            .font(.system(.caption2, design: .monospaced))
-                                    }
-                                    .foregroundColor(camera.attributes.frameRate == frameRate ? .black : .white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(camera.attributes.frameRate == frameRate ?
-                                                  Color.white : Color.black.opacity(0.6))
-                                    )
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
+            .padding(.horizontal, 20)
+
+        }
+    }
+
+    /// Dynamic zoom display that shows current zoom level
+    private var dynamicZoomDisplay: some View {
+        VStack(spacing: 12) {
+            // Always show zoom buttons (like Apple's camera app)
+            iosZoomButtons
+
+
+        }
+    }
+
+    /// iOS-style zoom buttons (0.5x, 1x, 2x)
+    private var iosZoomButtons: some View {
+        HStack(spacing: 8) {
+            ForEach(zoomPresets, id: \.self) { preset in
+                Button(action: {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        handleZoomPreset(preset)
                     }
-                    .padding(.top, 120)
-                    Spacer()
+
+                    // Haptic feedback
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                    impactFeedback.impactOccurred()
+                }) {
+                    Text(dynamicZoomDisplayText(for: preset))
+                        .font(.system(.body, design: .rounded, weight: isCurrentZoomPreset(preset) ? .bold : .medium))
+                        .foregroundColor(isCurrentZoomPreset(preset) ? .black : .white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(isCurrentZoomPreset(preset) ? Color.white : Color.white.opacity(0.2))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                        )
+                        .scaleEffect(isCurrentZoomPreset(preset) ? 1.05 : 1.0)
                 }
-                .background(
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation {
-                                showFrameRatePicker = false
-                            }
-                        }
-                )
-            }
-            
-            if showSettingsPanel {
-                VStack {
-                    Spacer()
-                    
-                    VStack(spacing: 20) {
-                        HStack {
-                            Text("Camera Settings")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            Button(action: {
-                                withAnimation(.spring()) {
-                                    showSettingsPanel = false
-                                }
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.white)
-                                    .font(.title2)
-                            }
-                        }
-                        
-                        VStack(spacing: 20) {
-                            // Resolution selector
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Resolution")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                
-                                HStack(spacing: 8) {
-                                    ForEach(resolutionOptions, id: \.self) { resolution in
-                                        Button(action: {
-                                            changeCameraSetting {
-                                                camera.attributes.resolution = resolution
-                                            }
-                                        }) {
-                                            Text(resolutionName(resolution))
-                                                .font(.system(.caption, design: .monospaced, weight: .medium))
-                                                .foregroundColor(camera.attributes.resolution == resolution ? .black : .white)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 6)
-                                                .background(
-                                                    RoundedRectangle(cornerRadius: 6)
-                                                        .fill(camera.attributes.resolution == resolution ?
-                                                              Color.white : Color.white.opacity(0.2))
-                                                )
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Mirror output toggle
-                            HStack {
-                                Text("Mirror Output")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Button(action: {
-                                    changeCameraSetting {
-                                        camera.attributes.mirrorOutput.toggle()
-                                    }
-                                }) {
-                                    Image(systemName: camera.attributes.mirrorOutput ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(.white)
-                                        .font(.title2)
-                                }
-                            }
-                            
-                            // Status
-                            HStack {
-                                Text("Status")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                if let error = camera.cameraErrors {
-                                    HStack {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundColor(.red)
-                                        Text("Error")
-                                            .foregroundColor(.red)
-                                    }
-                                } else {
-                                    HStack {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.green)
-                                        Text("Ready")
-                                            .foregroundColor(.green)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.black.opacity(0.9))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                            )
-                    )
-                    .padding(.horizontal, 20)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                .background(
-                    Color.black.opacity(0.3)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.spring()) {
-                                showSettingsPanel = false
-                            }
-                        }
-                )
+                .disabled(!isZoomPresetAvailable(preset))
+                .opacity(isZoomPresetAvailable(preset) ? 1.0 : 0.4)
             }
         }
-       
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 25)
+                .fill(Color.black.opacity(0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 25)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
+        )
     }
-    
-    private var topContainer: some View {
-        HStack {
+
+    /// Main controls container
+    private var mainControlsContainer: some View {
+        HStack(spacing: 40) {
             flashButton
-            Spacer()
-            frameRateBtn
-            Spacer()
+            captureButton
             rotateCamera
         }
     }
-    
-    private var cameraLens: some View {
-        Button(action: {
-            camera.switchLensType()
-        }) {
-            VStack(spacing: 2) {
-                Image(systemName: camera.attributes.lensType == .wide ? "camera" : "camera.aperture")
-                    .font(.title3)
-                    .foregroundColor(.white)
-                Text(camera.attributes.lensType.displayName)
-                    .font(.system(.caption2, design: .monospaced, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
-            .background(Color.black.opacity(0.6))
-            .cornerRadius(8)
-        }
-        .opacity(camera.isUltraWideAvailable() ? 1.0 : 0.5)
-        .disabled(!camera.isUltraWideAvailable())
-    }
-    
-    private var settingsContainer: some View {
-        HStack {
-            settingsBtn
-        }
-    }
-    
+
+    /// Flash control button that cycles through off, on, and auto modes
     private var flashButton: some View {
-        return  Button(action: {
+        Button(action: {
             camera.switchFlash()
+
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
         }) {
             Image(systemName: camera.flashMode == .off ? "bolt.slash" : (camera.flashMode == .on ? "bolt" : "bolt.badge.a"))
-                .font(.title2)
+                .font(.system(.title2, weight: .medium))
                 .foregroundColor(.white)
-                .padding()
-                .background(Color.black.opacity(0.6))
-                .clipShape(Circle())
+                .frame(width: 50, height: 50)
+                .background(
+                    Circle()
+                        .fill(Color.black.opacity(0.6))
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        )
+                )
         }
+        .scaleEffect(0.9)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: camera.flashMode)
     }
-    
-    private var frameRateBtn: some View {
-        Button(action: {
-            withAnimation {
-                showFrameRatePicker.toggle()
-                showSettingsPanel = false
-            }
-        }) {
-            VStack(spacing: 2) {
-                Text("\(camera.attributes.frameRate)")
-                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                    .foregroundColor(.white)
-                Text("FPS")
-                    .font(.system(.caption, design: .monospaced, weight: .medium))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.black.opacity(0.6))
-            .cornerRadius(8)
-        }
-        
-    }
-    
+
+    /// Camera rotation button that switches between front and back cameras
     private var rotateCamera: some View {
         Button(action: {
             camera.switchCamera()
+
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
         }) {
             Image(systemName: "camera.rotate")
-                .font(.title2)
+                .font(.system(.title2, weight: .medium))
                 .foregroundColor(.white)
-                .padding()
-                .background(Color.black.opacity(0.6))
-                .clipShape(Circle())
+                .frame(width: 50, height: 50)
+                .background(
+                    Circle()
+                        .fill(Color.black.opacity(0.6))
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        )
+                )
         }
+        .scaleEffect(0.9)
+    }
+
+    // MARK: Capture Button
+
+    /// Main capture button for taking photos
+    private var captureButton: some View {
+        Button(action: {
+            camera.takePicture()
+
+            // Haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
+        }) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white, lineWidth: 6)
+                    .frame(width: 90, height: 90)
+
+                Circle()
+                    .fill(camera.attributes.isPaused ? Color.white.opacity(0.5) : Color.white)
+                    .frame(width: 75, height: 75)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.black.opacity(0.1), lineWidth: 2)
+                    )
+            }
+        }
+        .disabled(camera.attributes.isPaused)
+        .scaleEffect(camera.attributes.isPaused ? 0.9 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: camera.attributes.isPaused)
+    }
+
+
+    // MARK: Helper Methods
+
+    /// Handles continuous zoom changes from gestures
+    private func handleZoomChange(_ targetZoom: CGFloat) {
+        let newZoom = max(0.5, min(10.0, targetZoom))
+
+        if newZoom < 1.0 {
+            if camera.isUltraWideAvailable() {
+                if camera.attributes.lensType != .ultraWide {
+                    camera.switchLensType()
+                }
+                // Map the effective zoom (0.5x-1x) to the ultra-wide lens's own zoom factor (1x-2x)
+                let ultraWideZoomFactor = newZoom * 2.0
+                camera.setZoom(ultraWideZoomFactor)
+
+            } else {
+                // No ultra-wide lens available, so clamp at 1.0x zoom
+                camera.setZoom(1.0)
+            }
+        } else { // newZoom is 1.0 or greater
+            if camera.attributes.lensType == .ultraWide {
+                camera.switchLensType()
+            }
+            camera.setZoom(newZoom)
+        }
+    }
+
+    /// Gets the current zoom display text with proper formatting
+    private func getCurrentZoomDisplayText() -> String {
+        let currentZoom = camera.attributes.zoomFactor
+        let isUltraWide = camera.attributes.lensType == .ultraWide
+
+        if isUltraWide {
+            // For ultra-wide, the effective zoom is half of the lens's zoom factor
+            let effectiveZoom = camera.attributes.zoomFactor / 2.0
+            return String(format: "%.1f×", effectiveZoom)
+        } else {
+            // Show one decimal place for values between whole numbers
+            if currentZoom.truncatingRemainder(dividingBy: 1) == 0 {
+                return "\(Int(currentZoom))×"
+            } else {
+                return String(format: "%.1f×", currentZoom)
+            }
+        }
+    }
+
+    /// Returns dynamic display text for zoom preset buttons based on current zoom
+    private func dynamicZoomDisplayText(for preset: CGFloat) -> String {
+        let currentZoom = camera.attributes.zoomFactor
+        let isUltraWide = camera.attributes.lensType == .ultraWide
+        let effectiveZoom = isUltraWide ? currentZoom / 2.0 : currentZoom
+
+        if preset == 0.5 {
+            // Ultra-wide is always 0.5×, but show current zoom if active
+            if isUltraWide {
+                return String(format: "%.1f×", effectiveZoom)
+            }
+            return "0.5×"
+        } else if preset == 1.0 {
+            // Show current zoom if it's between 1.0 and 1.9
+            if !isUltraWide && effectiveZoom >= 1.0 && effectiveZoom < 2.0 {
+                if effectiveZoom.truncatingRemainder(dividingBy: 1) == 0 {
+                    return "\(Int(effectiveZoom))×"
+                } else {
+                    return String(format: "%.1f×", effectiveZoom)
+                }
+            }
+            return "1×"
+        } else if preset == 2.0 {
+            // Show current zoom if it's 2.0 or higher
+            if !isUltraWide && effectiveZoom >= 2.0 {
+                if effectiveZoom.truncatingRemainder(dividingBy: 1) == 0 {
+                    return "\(Int(effectiveZoom))×"
+                } else {
+                    return String(format: "%.1f×", effectiveZoom)
+                }
+            }
+            return "2×"
+        }
+        return "\(preset)×"
+    }
+
+    /// Checks if current zoom is at a preset value
+    private func isCurrentZoomPreset(_ preset: CGFloat) -> Bool {
+        let currentZoom = camera.attributes.zoomFactor
+        let isUltraWide = camera.attributes.lensType == .ultraWide
+        let effectiveZoom = isUltraWide ? currentZoom / 2.0 : currentZoom
+
+        if preset == 0.5 {
+            // Ultra-wide lens is active
+            return isUltraWide
+        } else if preset == 1.0 {
+            // Regular lens with zoom between 1.0 and 1.9
+            return !isUltraWide && effectiveZoom >= 1.0 && effectiveZoom < 2.0
+        } else if preset == 2.0 {
+            // Regular lens with zoom 2.0 and above
+            return !isUltraWide && effectiveZoom >= 2.0
+        }
+        return false
+    }
+
+    /// Checks if a zoom preset is available on the current device
+    private func isZoomPresetAvailable(_ preset: CGFloat) -> Bool {
+        if preset == 0.5 {
+            return camera.isUltraWideAvailable()
+        }
+        return true // 1x and 2x are always available
+    }
+
+    private func handleZoomPreset(_ preset: CGFloat) {
+        if preset == 0.5 {
+            // Switch to ultra-wide lens if available
+            if camera.isUltraWideAvailable() && camera.attributes.lensType != .ultraWide {
+                camera.switchLensType()
+            }
+            camera.setZoom(1.0) // Ultra-wide at 1x is effectively 0.5x
+        } else {
+            // Switch to regular lens if on ultra-wide
+            if camera.attributes.lensType == .ultraWide {
+                camera.switchLensType()
+            }
+            camera.setZoom(preset)
+        }
+    }
+
+    private func zoomDisplayText(for preset: CGFloat) -> String {
+        if preset == 0.5 {
+            return "0.5×"
+        } else if preset == 1.0 {
+            return "1×"
+        } else if preset == 2.0 {
+            return "2×"
+        }
+        return "\(preset)×"
     }
 }
