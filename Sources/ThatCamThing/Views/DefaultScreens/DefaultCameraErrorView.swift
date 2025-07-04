@@ -7,6 +7,15 @@
 import SwiftUI
 import ThatCamThing
 
+/// A default implementation of `ErrorOverlay` that displays a full-screen message
+/// when camera access is denied or fails due to permissions.
+///
+/// This view provides the user with:
+/// - A clear title indicating the error
+/// - A subtitle explaining the cause and action
+/// - A button that takes the user to the app's Settings page
+///
+/// Use this as the default error overlay to handle permission-related errors in a user-friendly way.
 struct DefaultCameraErrorView: ErrorOverlay {
     
     let cameraError: CameraError
