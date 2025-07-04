@@ -13,7 +13,7 @@ import AVKit
 /// A comprehensive camera overlay that provides a full-featured interface for camera controls.
 /// This overlay includes flash controls, frame rate selection, zoom controls, settings panel,
 /// and camera switching capabilities. It's designed to work with the ThatCamThing camera library.
-/// User it for inspo on how to use the library or to test how the library actually works 
+/// User it for inspo on how to use the library or to test how the library actually works
 public struct CustomCameraOverlay:  CameraOverlay {
     
     // MARK: properties
