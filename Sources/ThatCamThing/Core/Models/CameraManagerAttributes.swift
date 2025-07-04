@@ -57,8 +57,6 @@ public enum CameraLensType: CaseIterable, Sendable {
     }
 }
 
-
-
 public struct CameraManagerAttributes {
     public var outputType = CameraOutputType.photo
     public var cameraPosition = CameraPosition.back
