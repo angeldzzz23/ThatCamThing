@@ -79,31 +79,31 @@ extension CameraManager {
                 self.session.sessionPreset = self.attributes.resolution
                 
                 let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
-                let deviceType = self.attributes.lensType.deviceType
                 
-                guard let device = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
-                    if self.attributes.lensType == .ultraWide {
-                        print("Ultra wide camera not available, falling back to wide angle")
-                        DispatchQueue.main.async {
-                            self.attributes.lensType = .wide
-                        }
-                        guard let fallbackDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
-                            DispatchQueue.main.async {
-                                self.cameraErrors = .cannotSetupInput
-                            }
-                            return
-                        }
-                        try self.setupWithDevice(fallbackDevice)
-                        return
-                    } else {
-                        DispatchQueue.main.async {
-                            self.cameraErrors = .cannotSetupInput
-                        }
-                        return
+                var device: AVCaptureDevice?
+                if position == .back {
+                    if let dualWideCamera = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
+                        device = dualWideCamera
+                        print("Using Dual Wide Camera for seamless zoom.")
+                    } else if let dualCamera = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+                        device = dualCamera
+                        print("Using Dual Camera.")
                     }
                 }
                 
-                try self.setupWithDevice(device)
+                // Fallback for front camera or if no virtual device is found.
+                if device == nil {
+                    device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
+                }
+                
+                guard let finalDevice = device else {
+                    DispatchQueue.main.async {
+                        self.cameraErrors = .cannotSetupInput
+                    }
+                    return
+                }
+                
+                try self.setupWithDevice(finalDevice)
                 
             } catch {
                 print("Error setting up camera: \(error.localizedDescription)")
@@ -128,7 +128,7 @@ extension CameraManager {
             self.session.addOutput(self.output)
             self.currentInput = input
             
-            let isUltraWideAvailable = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: device.position) != nil
+            let isUltraWideAvailable = device.minAvailableVideoZoomFactor < 1.0
             DispatchQueue.main.async {
                 self.attributes.isUltraWideLensAvailable = isUltraWideAvailable
             }
@@ -149,6 +149,7 @@ extension CameraManager {
 extension CameraManager {
     
     public func switchCamera() {
+        
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
@@ -166,38 +167,37 @@ extension CameraManager {
             let position: AVCaptureDevice.Position = newPosition == .back ? .back : .front
             let deviceType = self.attributes.lensType.deviceType
             
-            guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
-                if self.attributes.lensType == .ultraWide {
-                    print("Ultra wide camera not available for \(position == .back ? "back" : "front") camera, using wide angle")
-                    guard let fallbackDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else {
-                        return
-                    }
-                    
-                    do {
-                        let newInput = try AVCaptureDeviceInput(device: fallbackDevice)
-                        if self.session.canAddInput(newInput) {
-                            self.session.addInput(newInput)
-                            self.currentInput = newInput
-                            if position == .front {
-                                DispatchQueue.main.async {
-                                    self.attributes.lensType = .wide
-                                }
-                            }
-                        }
-                    } catch {
-                        print("Error switching camera: \(error.localizedDescription)")
-                    }
-                    return
+            var newDevice: AVCaptureDevice?
+            if position == .back {
+                if let dualWideCamera = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
+                    newDevice = dualWideCamera
+                } else if let dualCamera = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
+                    newDevice = dualCamera
                 }
+            }
+            
+            if newDevice == nil {
+                newDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
+            }
+            
+            guard let finalDevice = newDevice else {
+                print("Error: Could not find a suitable device for the new position.")
                 return
             }
             
             do {
-                let newInput = try AVCaptureDeviceInput(device: newDevice)
+                let newInput = try AVCaptureDeviceInput(device: finalDevice)
                 
                 if self.session.canAddInput(newInput) {
                     self.session.addInput(newInput)
                     self.currentInput = newInput
+                    
+                    let isUltraWideAvailable = finalDevice.minAvailableVideoZoomFactor < 1.0
+                    let zoomFactor = finalDevice.videoZoomFactor
+                    DispatchQueue.main.async {
+                        self.attributes.isUltraWideLensAvailable = isUltraWideAvailable
+                        self.attributes.zoomFactor = zoomFactor
+                    }
                 }
             } catch {
                 print("Error switching camera: \(error.localizedDescription)")
@@ -207,57 +207,28 @@ extension CameraManager {
     
     public func switchLensType() {
         sessionQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self = self, let device = self.currentInput?.device else { return }
+
+            let targetZoom: CGFloat
             
-            self.session.beginConfiguration()
-            defer { self.session.commitConfiguration() }
-            
-            if let currentInput = self.currentInput {
-                self.session.removeInput(currentInput)
-            }
-            
-            let newLensType = self.attributes.lensType == .wide ? CameraLensType.ultraWide : .wide
-            DispatchQueue.main.async {
-                self.attributes.lensType = newLensType
-            }
-            
-            let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
-            let deviceType = newLensType.deviceType
-            
-            guard let newDevice = AVCaptureDevice.default(deviceType, for: .video, position: position) else {
-                print("\(newLensType.displayName) camera not available, reverting to previous lens")
-                let revertedLensType = newLensType == .wide ? CameraLensType.ultraWide : .wide
-                DispatchQueue.main.async {
-                    self.attributes.lensType = revertedLensType
-                }
-                
-                let fallbackDeviceType = revertedLensType.deviceType
-                guard let fallbackDevice = AVCaptureDevice.default(fallbackDeviceType, for: .video, position: position) else {
-                    return
-                }
-                
-                do {
-                    let newInput = try AVCaptureDeviceInput(device: fallbackDevice)
-                    if self.session.canAddInput(newInput) {
-                        self.session.addInput(newInput)
-                        self.currentInput = newInput
-                    }
-                } catch {
-                    print("Error reverting camera: \(error.localizedDescription)")
-                }
-                return
+            // If we are zoomed in (or at 1x), switch to ultra-wide. Otherwise, switch to 1x.
+            if self.attributes.zoomFactor >= 1.0 {
+                targetZoom = device.minAvailableVideoZoomFactor
+            } else {
+                targetZoom = 1.0
             }
             
             do {
-                let newInput = try AVCaptureDeviceInput(device: newDevice)
+                try device.lockForConfiguration()
+                device.videoZoomFactor = targetZoom
+                device.unlockForConfiguration()
                 
-                if self.session.canAddInput(newInput) {
-                    self.session.addInput(newInput)
-                    self.currentInput = newInput
-                    print("Switched to \(newLensType.displayName) camera")
+                DispatchQueue.main.async {
+                    self.attributes.zoomFactor = targetZoom
+                    self.attributes.lensType = targetZoom < 1.0 ? .ultraWide : .wide
                 }
             } catch {
-                print("Error switching lens: \(error.localizedDescription)")
+                print("Could not change zoom: \(error)")
             }
         }
     }
@@ -301,53 +272,6 @@ extension CameraManager {
             self?.session.startRunning()
         }
     }
-}
-
-// MARK: - Capture Operations
-
-extension CameraManager {
-    
-    public func takePicture() {
-        guard session.isRunning else {
-            print("Attempted to take picture while session is not running.")
-            return
-        }
-        
-        let settings = AVCapturePhotoSettings()
-        
-        if currentInput?.device.hasFlash == true {
-            switch attributes.flashMode {
-            case .off:
-                settings.flashMode = .off
-            case .on:
-                settings.flashMode = .on
-            case .auto:
-                settings.flashMode = .auto
-            }
-        }
-        
-        if output.isHighResolutionCaptureEnabled {
-            settings.isHighResolutionPhotoEnabled = true
-        }
-        
-        output.capturePhoto(with: settings, delegate: self)
-    }
-}
-
-// MARK: - Configuration
-
-extension CameraManager {
-    
-    public func switchFlash() {
-        switch attributes.flashMode {
-        case .off:
-            attributes.flashMode = .on
-        case .on:
-            attributes.flashMode = .auto
-        case .auto:
-            attributes.flashMode = .off
-        }
-    }
     
     public func setZoom(_ factor: CGFloat) {
         sessionQueue.async { [weak self] in
@@ -355,7 +279,7 @@ extension CameraManager {
             
             do {
                 try device.lockForConfiguration()
-                let clampedFactor = min(max(factor, 1.0), device.activeFormat.videoMaxZoomFactor)
+                let clampedFactor = min(max(factor, device.minAvailableVideoZoomFactor), device.maxAvailableVideoZoomFactor)
                 device.videoZoomFactor = clampedFactor
                 
                 DispatchQueue.main.async {
@@ -455,13 +379,60 @@ extension CameraManager {
     }
 }
 
+// MARK: - Capture Operations
+
+extension CameraManager {
+    
+    public func takePicture() {
+        guard session.isRunning else {
+            print("Attempted to take picture while session is not running.")
+            return
+        }
+        
+        let settings = AVCapturePhotoSettings()
+        
+        if currentInput?.device.hasFlash == true {
+            switch attributes.flashMode {
+            case .off:
+                settings.flashMode = .off
+            case .on:
+                settings.flashMode = .on
+            case .auto:
+                settings.flashMode = .auto
+            }
+        }
+        
+        if output.isHighResolutionCaptureEnabled {
+            settings.isHighResolutionPhotoEnabled = true
+        }
+        
+        output.capturePhoto(with: settings, delegate: self)
+    }
+}
+
+// MARK: - Configuration
+
+extension CameraManager {
+    
+    public func switchFlash() {
+        switch attributes.flashMode {
+        case .off:
+            attributes.flashMode = .on
+        case .on:
+            attributes.flashMode = .auto
+        case .auto:
+            attributes.flashMode = .off
+        }
+    }
+    
+}
+
 // MARK: - Utilities
 
 extension CameraManager {
     
     public func isUltraWideAvailable() -> Bool {
-        let position: AVCaptureDevice.Position = attributes.cameraPosition == .back ? .back : .front
-        return AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: position) != nil
+        return attributes.isUltraWideLensAvailable
     }
 }
 
