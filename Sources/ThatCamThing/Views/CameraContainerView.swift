@@ -69,7 +69,30 @@ public struct CameraView<Overlay: CameraOverlay, ErrorOverlay: View>: View {
     }
 }
 
+// A private, type-erased wrapper to allow for ViewBuilder syntax.
+// It conforms to CameraOverlay by providing the required init.
+public struct AnyCameraOverlay: CameraOverlay {
+    @ObservedObject var camera: CameraManager
+    private let bodyClosure: (CameraManager) -> AnyView
 
+    // This initializer is required by the CameraOverlay protocol.
+    // It is not intended to be used directly with this wrapper.
+    public init(camera: CameraManager) {
+        self.camera = camera
+        self.bodyClosure = { _ in AnyView(EmptyView()) }
+    }
+    
+    // This is the initializer we will actually use via the .overlay modifier.
+    // It captures the user's view content in the bodyClosure.
+    init<V: View>(camera: CameraManager, @ViewBuilder content: @escaping (CameraManager) -> V) {
+        self.camera = camera
+        self.bodyClosure = { manager in AnyView(content(manager)) }
+    }
+
+    public var body: some View {
+        bodyClosure(camera)
+    }
+}
 
 // Public initializer for creating a CameraView without any overlays.
 extension CameraView where Overlay == EmptyCameraOverlay, ErrorOverlay == EmptyErrorOverlay {
@@ -118,6 +141,24 @@ extension CameraView {
     public func setOverlayScreen<NewOverlay: CameraOverlay>(_ content: @escaping (CameraManager) -> NewOverlay) -> CameraView<NewOverlay, ErrorOverlay> {
         CameraView<NewOverlay, ErrorOverlay>(
             overlay: content,
+            errorOverlay: self.errorOverlay,
+            onImageCaptured: self.onImageCapturedAction,
+            defaultAttributes: self.defaultAttributes
+        )
+    }
+    
+    /**
+     Sets a custom overlay for the camera view using a `ViewBuilder`.
+     - parameter content: A closure that returns the overlay view. It receives a `CameraManager` instance to control the camera.
+     - returns: A new `CameraView` with the specified overlay.
+     */
+    public func overlay<Content: View>(@ViewBuilder _ content: @escaping (CameraManager) -> Content) -> CameraView<AnyCameraOverlay, ErrorOverlay> {
+        let overlayFactory = { (manager: CameraManager) -> AnyCameraOverlay in
+            return AnyCameraOverlay(camera: manager, content: content)
+        }
+        
+        return CameraView<AnyCameraOverlay, ErrorOverlay>(
+            overlay: overlayFactory,
             errorOverlay: self.errorOverlay,
             onImageCaptured: self.onImageCapturedAction,
             defaultAttributes: self.defaultAttributes
