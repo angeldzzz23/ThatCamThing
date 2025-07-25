@@ -55,6 +55,24 @@ public enum CameraLensType: CaseIterable, Sendable {
     }
 }
 
+public enum FrameRate {
+    case fps15
+    case fps24
+    case fps30
+    case fps60
+    case fps120
+
+   public var asInt32: Int32 {
+        switch self {
+        case .fps15: return 15
+        case .fps24: return 24
+        case .fps30: return 30
+        case .fps60: return 60
+        case .fps120: return 120
+        }
+    }
+}
+
 public struct CameraManagerAttributes {
     public var outputType = CameraOutputType.photo
     public var cameraPosition = CameraPosition.back
@@ -71,7 +89,7 @@ public struct CameraManagerAttributes {
         outputType: CameraOutputType = .photo,
         cameraPosition: CameraPosition = .back,
         zoomFactor: CGFloat = 1.0,
-        frameRate: Int32 = 30,
+        frameRate: FrameRate = .fps30,
         flashMode: CameraFlashMode = .off,
         resolution: AVCaptureSession.Preset = .hd1920x1080,
         mirrorOutput: Bool = false,
@@ -82,7 +100,7 @@ public struct CameraManagerAttributes {
         self.outputType = outputType
         self.cameraPosition = cameraPosition
         self.zoomFactor = zoomFactor
-        self.frameRate = frameRate
+        self.frameRate = frameRate.asInt32
         self.flashMode = flashMode
         self.resolution = resolution
         self.mirrorOutput = mirrorOutput
