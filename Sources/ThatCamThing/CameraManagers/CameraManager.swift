@@ -128,6 +128,9 @@ extension CameraManager {
             self.session.addOutput(self.output)
             self.currentInput = input
             
+            try self.configureFrameRate(device: device, frameRate: self.attributes.frameRate)
+
+            
             let isUltraWideAvailable = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: device.position) != nil
             DispatchQueue.main.async {
                 self.attributes.isUltraWideLensAvailable = isUltraWideAvailable
