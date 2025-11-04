@@ -76,7 +76,15 @@ extension CameraManager {
             defer { self.session.commitConfiguration() }
             
             do {
-                self.session.sessionPreset = self.attributes.resolution
+                // TODO: add check here fir resolution
+                print("setting resolution by checking if it is supported")
+                if self.session.canSetSessionPreset(self.attributes.resolution) {
+                    print("desired resolution is supported ")
+                    self.session.sessionPreset = self.attributes.resolution
+                } else {
+                    session.sessionPreset = .high
+                    print("Desired resolution not supported — using .high instead.")
+                }
                 
                 let position: AVCaptureDevice.Position = self.attributes.cameraPosition == .back ? .back : .front
                 let deviceType = self.attributes.lensType.deviceType
