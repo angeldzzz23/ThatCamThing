@@ -316,6 +316,11 @@ extension CameraManager {
             return
         }
         
+        guard let connection = output.connection(with: .video), connection.isActive else {
+            print("No active video connection — skipping photo capture to avoid crash.")
+            return
+        }
+        
         let settings = AVCapturePhotoSettings()
         
         if currentInput?.device.hasFlash == true {
