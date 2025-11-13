@@ -354,6 +354,7 @@ extension CameraManager {
 
 extension CameraManager {
     
+    // this allows to rotate the different flash settings
     public func switchFlash() {
         switch attributes.flashMode {
         case .off:
@@ -362,6 +363,20 @@ extension CameraManager {
             attributes.flashMode = .auto
         case .auto:
             attributes.flashMode = .off
+        }
+    }
+    
+    //
+    public func switchFlash(to mode: CameraFlashMode) {
+        attributes.flashMode = mode
+    }
+    
+    // this toggles flash between on and off
+    public func toggleFlash() {
+        if attributes.flashMode == .on {
+            attributes.flashMode = .off
+        } else {
+            attributes.flashMode = .on
         }
     }
     
