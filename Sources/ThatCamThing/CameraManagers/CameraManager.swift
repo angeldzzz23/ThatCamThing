@@ -371,10 +371,14 @@ extension CameraManager {
         attributes.flashMode = mode
     }
     
-    // this toggles flash between on and off..
-    
-
-    
+    // this toggles flash between on and off
+    public func toggleFlash() {
+        if attributes.flashMode == .on {
+            attributes.flashMode = .off
+        } else {
+            attributes.flashMode = .on
+        }
+    }
     
     public func setZoom(_ factor: CGFloat) {
         sessionQueue.async { [weak self] in
