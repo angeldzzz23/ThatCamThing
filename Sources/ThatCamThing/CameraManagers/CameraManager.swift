@@ -354,6 +354,7 @@ extension CameraManager {
 
 extension CameraManager {
     
+    // this allows to rotate the different flash settings
     public func switchFlash() {
         switch attributes.flashMode {
         case .off:
@@ -364,6 +365,16 @@ extension CameraManager {
             attributes.flashMode = .off
         }
     }
+    
+    //
+    public func switchFlash(to mode: CameraFlashMode) {
+        attributes.flashMode = mode
+    }
+    
+    // this toggles flash between on and off..
+    
+
+    
     
     public func setZoom(_ factor: CGFloat) {
         sessionQueue.async { [weak self] in
