@@ -76,7 +76,6 @@ extension CameraManager {
             defer { self.session.commitConfiguration() }
             
             do {
-                // TODO: add check here fir resolution
                 print("setting resolution by checking if it is supported")
                 if self.session.canSetSessionPreset(self.attributes.resolution) {
                     print("desired resolution is supported ")
